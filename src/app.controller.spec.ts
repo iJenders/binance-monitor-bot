@@ -1,28 +1,12 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 
 describe('AppController', () => {
-  let appController: AppController;
-
-  beforeEach(async () => {
-    const app: TestingModule = await Test.createTestingModule({
-      controllers: [AppController],
-      providers: [
-        {
-          provide: AppService,
-          useValue: { getAdvertisings: vi.fn().mockResolvedValue([]) },
-        },
-      ],
-    }).compile();
-
-    appController = app.get<AppController>(AppController);
-  });
-
-  describe('root', () => {
-    it('should be defined', () => {
-      expect(appController).toBeDefined();
-    });
+  it('debe responder el estado de salud del sistema', () => {
+    const controller = new AppController(new AppService());
+    const health = controller.getHealth();
+    expect(health.status).toBe('ok');
+    expect(health.version).toBe('2.0');
   });
 });

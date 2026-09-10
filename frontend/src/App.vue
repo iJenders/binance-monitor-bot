@@ -6,128 +6,129 @@
         <div class="logo-icon"></div>
         <div>
           <div class="brand-title">Binance Monitor P2P</div>
-          <div class="brand-subtitle">Monitor de Precios & Cron Histórico (VES / USDT)</div>
+          <div class="brand-subtitle">Plataforma de Monitoreo & Consulta al Instante</div>
         </div>
       </div>
 
+      <!-- Main Module Navigation Tabs -->
       <div class="header-actions">
-        <button class="btn-tab" type="button" @click="showSettings = true">Configuración</button>
-        <div class="live-badge">
-          <div class="pulse-dot"></div>
-          <span>CRON ACTIVO</span>
+        <div class="btn-group" style="padding: 2px;">
+          <button
+            class="btn-tab"
+            :class="{ active: currentTab === 'live' }"
+            type="button"
+            @click="currentTab = 'live'"
+          >
+            ⚡ Ofertas al Instante
+          </button>
+          <button
+            class="btn-tab"
+            :class="{ active: currentTab === 'monitoring' }"
+            type="button"
+            @click="currentTab = 'monitoring'"
+          >
+            📊 Monitoreo & Gráficas
+          </button>
         </div>
       </div>
     </header>
 
     <!-- Main Content Container -->
     <main class="container">
-      <!-- Controls Bar -->
-      <section class="controls-bar">
-        <div class="controls-group">
-          <span style="font-size: 13px; color: var(--text-secondary); margin-right: 8px; font-weight: 600;">Período:</span>
-          <div class="btn-group">
-            <button
-              v-for="h in [1, 6, 12, 24, 48]"
-              :key="h"
-              class="btn-tab"
-              :class="{ active: periodHours === h }"
-              @click="changePeriod(h)"
-            >
-              {{ h }}h
-            </button>
-          </div>
-        </div>
-
-        <div class="controls-group" style="display: flex; gap: 12px; align-items: center;">
-          <span style="font-size: 13px; color: var(--text-secondary); font-weight: 600;">Auto Recarga:</span>
-          <div class="btn-group">
-            <button
-              v-for="sec in [0, 10, 30]"
-              :key="sec"
-              class="btn-tab"
-              :class="{ active: autoRefreshSeconds === sec }"
-              @click="setAutoRefresh(sec)"
-            >
-              {{ sec === 0 ? 'Off' : `${sec}s` }}
-            </button>
-          </div>
-
-          <button class="btn-action" :disabled="loading" @click="fetchData">
-            <RefreshCwIcon :class="{ spin: loading }" :size="16" />
-            <span>Actualizar</span>
-          </button>
-        </div>
-      </section>
-
-      <!-- Loading State -->
-      <div v-if="loading && historyData.length === 0" class="loading-box">
-        <div class="spinner"></div>
-        <span>Cargando datos del repositorio...</span>
-      </div>
-
-      <!-- Error Banner -->
-      <div v-else-if="error" class="metric-card" style="border-color: var(--color-red);">
-        <div style="color: var(--color-red); font-weight: 600;">⚠️ Error al conectar con la API</div>
-        <div style="font-size: 13px; color: var(--text-secondary);">{{ error }}</div>
-      </div>
-
-      <template v-else>
-        <!-- Metrics Overview Grid -->
-        <section class="metrics-grid">
-          <div class="metric-card">
-            <span class="metric-label">Precio Mínimo Actual</span>
-            <span class="metric-value highlight-green">Bs. {{ formatNumber(latestMetrics.minPrice) }}</span>
-            <span class="metric-sub">Mejor oferta de compra en mercado</span>
-          </div>
-
-          <div class="metric-card">
-            <span class="metric-label">Precio Promedio</span>
-            <span class="metric-value highlight-gold">Bs. {{ formatNumber(latestMetrics.avgPrice) }}</span>
-            <span class="metric-sub">Promedio de ofertas activas</span>
-          </div>
-
-          <div class="metric-card">
-            <span class="metric-label">Precio Máximo</span>
-            <span class="metric-value">Bs. {{ formatNumber(latestMetrics.maxPrice) }}</span>
-            <span class="metric-sub">Toque superior en ordenes</span>
-          </div>
-
-          <div class="metric-card">
-            <span class="metric-label">Ofertas / Snapshots</span>
-            <span class="metric-value">{{ latestMetrics.offerCount }} <span style="font-size: 14px; font-weight: 400; color: var(--text-secondary)">ofertas</span></span>
-            <span class="metric-sub">{{ historyData.length }} capturas en {{ periodHours }}h</span>
-          </div>
-        </section>
-
-        <!-- Chart Card -->
-        <section class="chart-card">
-          <div class="card-header">
+      <!-- ========================================================================= -->
+      <!-- TAB 1: OFERTAS AL INSTANTE (MODULE 2)                                      -->
+      <!-- ========================================================================= -->
+      <template v-if="currentTab === 'live'">
+        <section class="controls-bar" style="flex-direction: column; align-items: stretch; gap: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
             <div>
-              <h2 class="card-title">Evolución Temporal de Precios P2P (Bs / USDT)</h2>
-              <p style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">
-                Tendencia histórica recolectada por el Cron en los últimos snapshots
+              <h2 style="font-size: 16px; font-weight: 700; color: var(--text-primary);">Consulta de Ofertas P2P en Tiempo Real</h2>
+              <p style="font-size: 12px; color: var(--text-secondary);">
+                Obtén el listado de ofertas en el instante actual sin generar historial ni guardar en disco.
               </p>
             </div>
+
+            <div style="display: flex; gap: 12px; align-items: center;">
+              <span style="font-size: 13px; color: var(--text-secondary); font-weight: 600;">Auto Recarga:</span>
+              <div class="btn-group">
+                <button
+                  v-for="sec in [0, 10, 30]"
+                  :key="sec"
+                  class="btn-tab"
+                  :class="{ active: liveAutoRefreshSeconds === sec }"
+                  @click="setLiveAutoRefresh(sec)"
+                >
+                  {{ sec === 0 ? 'Off' : `${sec}s` }}
+                </button>
+              </div>
+
+              <button class="btn-action" :disabled="liveLoading" @click="fetchLiveOffers">
+                <RefreshCwIcon :class="{ spin: liveLoading }" :size="16" />
+                <span>Consultar Ofertas Ahora</span>
+              </button>
+            </div>
           </div>
-          <div class="chart-wrapper">
-            <canvas ref="chartCanvas"></canvas>
+
+          <!-- Live Filters Bar -->
+          <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; background: var(--bg-tertiary); padding: 12px; border-radius: 6px;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">Fiat:</span>
+              <input v-model="liveFilters.fiat" class="search-input" style="width: 80px;" type="text" />
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">Asset:</span>
+              <input v-model="liveFilters.asset" class="search-input" style="width: 80px;" type="text" />
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">Operación:</span>
+              <select v-model="liveFilters.tradeType" class="search-input" style="width: 100px;">
+                <option value="BUY">BUY</option>
+                <option value="SELL">SELL</option>
+              </select>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">Filas:</span>
+              <input v-model.number="liveFilters.rows" class="search-input" style="width: 70px;" type="number" min="1" max="100" />
+            </div>
+
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px; flex: 1;">
+              <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">Bancos:</span>
+              <button
+                v-for="b in livePayTypesCatalog"
+                :key="b.id"
+                class="paytype-chip"
+                :class="{ active: liveFilters.payTypes.includes(b.id) }"
+                @click="toggleLivePayType(b.id)"
+              >
+                {{ b.label }}
+              </button>
+            </div>
           </div>
         </section>
 
-        <!-- Latest Offers Data Table -->
-        <section class="table-card">
+        <!-- Live Loading State -->
+        <div v-if="liveLoading && liveOffers.length === 0" class="loading-box">
+          <div class="spinner"></div>
+          <span>Consultando Binance P2P en tiempo real...</span>
+        </div>
+
+        <!-- Live Offers Data Table -->
+        <section v-else class="table-card">
           <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
             <div>
-              <h2 class="card-title">Último Snapshot de Ofertas (P2P Binance)</h2>
+              <h2 class="card-title">Ofertas P2P Binance al Instante</h2>
               <p style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">
-                Capturado a las: {{ latestMetrics.formattedTimestamp }}
+                Consultadas a las: {{ liveFetchedAt ? new Date(liveFetchedAt).toLocaleTimeString() : 'N/A' }} | Duración de Petición: {{ liveDurationMs }} ms
               </p>
             </div>
             <div class="table-controls">
               <input
-                v-model="searchQuery"
+                v-model="liveSearchQuery"
                 type="text"
-                placeholder="Buscar por comerciante o pago..."
+                placeholder="Filtrar por comerciante o pago..."
                 class="search-input"
               />
             </div>
@@ -146,14 +147,11 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(item, idx) in filteredOffers" :key="idx">
+                <tr v-for="(item, idx) in filteredLiveOffers" :key="idx">
                   <td>
                     <div style="font-weight: 600;">
                       {{ item.advertiser?.nickName || 'Anónimo' }}
                       <span v-if="item.advertiser?.userType === 'merchant'" class="badge-tag badge-pro">PRO</span>
-                    </div>
-                    <div style="font-size: 11px; color: var(--text-muted)">
-                      ID: {{ item.advertiser?.userNo?.substring(0, 10) }}...
                     </div>
                   </td>
                   <td>
@@ -187,9 +185,9 @@
                     </div>
                   </td>
                 </tr>
-                <tr v-if="filteredOffers.length === 0">
+                <tr v-if="filteredLiveOffers.length === 0">
                   <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 32px;">
-                    No se encontraron ofertas que coincidan con la búsqueda.
+                    No se encontraron ofertas que coincidan con los filtros.
                   </td>
                 </tr>
               </tbody>
@@ -197,15 +195,264 @@
           </div>
         </section>
       </template>
+
+      <!-- ========================================================================= -->
+      <!-- TAB 2: MONITOREO & GRÁFICAS (MODULE 1)                                     -->
+      <!-- ========================================================================= -->
+      <template v-else-if="currentTab === 'monitoring'">
+        <!-- Monitor Control & Selection Bar -->
+        <section class="controls-bar">
+          <div class="controls-group" style="align-items: center; gap: 12px; flex-wrap: wrap;">
+            <span style="font-size: 13px; color: var(--text-secondary); font-weight: 700;">Monitor Activo:</span>
+            <div class="btn-group">
+              <button
+                v-for="m in monitorsList"
+                :key="m.id"
+                class="btn-tab"
+                :class="{ active: selectedMonitorId === m.id }"
+                @click="selectMonitor(m.id)"
+              >
+                {{ m.name }}
+                <span :style="{ color: m.enabled ? 'var(--color-green)' : 'var(--color-red)' }">●</span>
+              </button>
+            </div>
+
+            <button class="btn-tab" style="border: 1px dashed var(--border-color);" @click="openCreateMonitorModal">
+              + Nuevo Monitor
+            </button>
+          </div>
+
+          <div v-if="selectedMonitor" class="controls-group" style="gap: 8px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+              <span style="font-size: 12px; color: var(--text-secondary); font-weight: 600;">Auto Recarga:</span>
+              <div class="btn-group">
+                <button class="btn-tab" :class="{ active: autoRefreshMode === 'off' }" @click="setAutoRefreshMode('off')">Off</button>
+                <button class="btn-tab" :class="{ active: autoRefreshMode === 'auto' }" @click="setAutoRefreshMode('auto')">
+                  Automática <span style="opacity: 0.7; font-size: 11px;">({{ selectedMonitor ? Math.round(selectedMonitor.cronIntervalMs / 1000) : '?' }}s)</span>
+                </button>
+                <button class="btn-tab" :class="{ active: autoRefreshMode === 'custom' }" @click="setAutoRefreshMode('custom')">Personalizada</button>
+              </div>
+              <!-- Custom interval input, shown only in custom mode -->
+              <div v-if="autoRefreshMode === 'custom'" style="display: flex; align-items: center; gap: 4px;">
+                <input
+                  v-model.number="customRefreshSeconds"
+                  type="number" min="5" max="3600"
+                  class="search-input"
+                  style="width: 70px; padding: 4px 8px;"
+                  @change="applyCustomRefresh"
+                />
+                <span style="font-size: 12px; color: var(--text-secondary);">seg</span>
+              </div>
+              <div v-if="autoRefreshMode !== 'off'" class="live-badge" style="font-size: 11px; padding: 2px 8px;">
+                <div class="pulse-dot"></div>
+                <span>cada {{ monitorAutoRefreshSeconds }}s</span>
+              </div>
+            </div>
+            <button class="btn-tab" @click="openEditMonitorModal(selectedMonitor)">Editar</button>
+            <button class="btn-tab" style="color: var(--color-red);" @click="deleteSelectedMonitor">Eliminar</button>
+            <button class="btn-action" :disabled="monitoringLoading" @click="triggerCollectionNow">
+              <RefreshCwIcon :class="{ spin: monitoringLoading }" :size="16" />
+              <span>Actualizar Ahora</span>
+            </button>
+          </div>
+        </section>
+
+        <!-- No Monitor Selected State -->
+        <div v-if="monitorsList.length === 0" class="loading-box">
+          <span>No hay monitores configurados. Crea uno nuevo para comenzar a recolectar snapshots.</span>
+          <button class="btn-action" @click="openCreateMonitorModal">+ Crear Primer Monitor</button>
+        </div>
+
+        <template v-else-if="selectedMonitor">
+          <!-- Metrics Overview Grid -->
+          <section class="metrics-grid">
+            <div class="metric-card">
+              <span class="metric-label">Precio Mínimo Actual</span>
+              <span class="metric-value highlight-green">Bs. {{ formatNumber(monitorMetrics.minPrice) }}</span>
+              <span class="metric-sub">Mejor precio capturado por este cron</span>
+            </div>
+
+            <div class="metric-card">
+              <span class="metric-label">Precio Promedio</span>
+              <span class="metric-value highlight-gold">Bs. {{ formatNumber(monitorMetrics.avgPrice) }}</span>
+              <span class="metric-sub">Promedio en snapshots del período</span>
+            </div>
+
+            <div class="metric-card">
+              <span class="metric-label">Precio Máximo</span>
+              <span class="metric-value">Bs. {{ formatNumber(monitorMetrics.maxPrice) }}</span>
+              <span class="metric-sub">Toque superior en el período</span>
+            </div>
+
+            <div class="metric-card">
+              <span class="metric-label">Snapshots / Auditoría</span>
+              <span class="metric-value">{{ monitorSnapshots.length }} <span style="font-size: 14px; color: var(--text-secondary)">snapshots</span></span>
+              <span class="metric-sub">Frecuencia: {{ selectedMonitor.cronIntervalMs / 1000 }}s | Retención: {{ selectedMonitor.retentionPolicy?.retentionHours }}h</span>
+            </div>
+          </section>
+
+          <!-- Chart Card -->
+          <section class="chart-card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Evolución de Precios P2P - {{ selectedMonitor.name }}</h2>
+                <p style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">
+                  Tendencia histórica de snapshots auditados en las últimas {{ periodHours }} horas
+                </p>
+              </div>
+              <div class="btn-group">
+                <button
+                  v-for="h in [1, 6, 12, 24, 48]"
+                  :key="h"
+                  class="btn-tab"
+                  :class="{ active: periodHours === h }"
+                  @click="changePeriod(h)"
+                >
+                  {{ h }}h
+                </button>
+              </div>
+            </div>
+            <div class="chart-wrapper">
+              <canvas ref="chartCanvas"></canvas>
+            </div>
+          </section>
+
+          <!-- Audit Trail & Snapshots Data Table -->
+          <section class="table-card">
+            <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+              <div>
+                <h2 class="card-title">Historial de Snapshots &amp; Auditoría de Peticiones</h2>
+                <p style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">
+                  Cada rutina guarda el resultado y traza completa de las peticiones HTTP realizadas
+                </p>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 12px; color: var(--text-secondary);">Filas por página:</span>
+                <div class="btn-group">
+                  <button
+                    v-for="size in [10, 25, 50]"
+                    :key="size"
+                    class="btn-tab"
+                    :class="{ active: snapshotPageSize === size }"
+                    @click="setPageSize(size)"
+                  >{{ size }}</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="table-wrapper">
+              <table class="binance-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>ID Snapshot</th>
+                    <th>Fecha / Hora</th>
+                    <th>Estado Petición</th>
+                    <th>Código HTTP</th>
+                    <th>Duración</th>
+                    <th>Ofertas</th>
+                    <th>Auditoría</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(snap, idx) in paginatedSnapshots" :key="snap.id">
+                    <td style="color: var(--text-muted); width: 36px;">
+                      {{ (snapshotPage - 1) * snapshotPageSize + idx + 1 }}
+                    </td>
+                    <td><code style="font-size: 12px;">{{ snap.id.substring(0, 8) }}…</code></td>
+                    <td style="white-space: nowrap;">{{ new Date(snap.timestamp).toLocaleString() }}</td>
+                    <td>
+                      <span
+                        class="badge-tag"
+                        :style="{
+                          color: snap.status === 'SUCCESS' ? 'var(--color-green)' : 'var(--color-red)',
+                          borderColor: snap.status === 'SUCCESS' ? 'var(--color-green)' : 'var(--color-red)'
+                        }"
+                      >
+                        {{ snap.status === 'SUCCESS' ? '✓ OK' : '⚠ FAIL' }}
+                      </span>
+                    </td>
+                    <td>
+                      <span class="badge-tag"
+                        :style="{ color: (snap.auditTrail?.httpStatus || 200) < 400 ? 'var(--color-green)' : 'var(--color-red)' }"
+                      >{{ snap.auditTrail?.httpStatus || 200 }}</span>
+                    </td>
+                    <td style="white-space: nowrap;">{{ snap.executionDurationMs }} ms</td>
+                    <td><strong style="color: var(--accent-binance);">{{ snap.records?.length || 0 }}</strong></td>
+                    <td>
+                      <button class="btn-tab" style="padding: 4px 8px; font-size: 12px;" @click="inspectAuditSnapshot(snap)">
+                        🔍 Ver Auditoría
+                      </button>
+                    </td>
+                  </tr>
+                  <tr v-if="monitorSnapshots.length === 0">
+                    <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 32px;">
+                      No hay snapshots almacenados para este monitor en las últimas {{ periodHours }} horas.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Pagination Controls -->
+            <div v-if="snapshotTotalPages > 1" class="pagination-bar">
+              <span class="pagination-info">
+                Mostrando {{ (snapshotPage - 1) * snapshotPageSize + 1 }}–{{ Math.min(snapshotPage * snapshotPageSize, monitorSnapshots.length) }}
+                de <strong>{{ monitorSnapshots.length }}</strong> snapshots
+              </span>
+
+              <div class="pagination-controls">
+                <button class="page-btn" :disabled="snapshotPage === 1" @click="snapshotPage = 1" title="Primera página">
+                  ««
+                </button>
+                <button class="page-btn" :disabled="snapshotPage === 1" @click="snapshotPage--" title="Página anterior">
+                  ‹
+                </button>
+
+                <template v-for="p in visiblePages" :key="p">
+                  <span v-if="p === '...'" class="page-ellipsis">…</span>
+                  <button
+                    v-else
+                    class="page-btn"
+                    :class="{ active: snapshotPage === p }"
+                    @click="snapshotPage = (p as number)"
+                  >{{ p }}</button>
+                </template>
+
+                <button class="page-btn" :disabled="snapshotPage === snapshotTotalPages" @click="snapshotPage++" title="Página siguiente">
+                  ›
+                </button>
+                <button class="page-btn" :disabled="snapshotPage === snapshotTotalPages" @click="snapshotPage = snapshotTotalPages" title="Última página">
+                  »»
+                </button>
+              </div>
+            </div>
+          </section>
+        </template>
+      </template>
     </main>
-    <SettingsPanel v-if="showSettings" @close="showSettings = false" @saved="fetchData" />
+
+    <!-- Modals -->
+    <MonitorModal
+      v-if="showMonitorModal"
+      :monitor="editingMonitor"
+      @close="showMonitorModal = false"
+      @saved="onMonitorSaved"
+    />
+
+    <AuditDetailModal
+      v-if="selectedAuditSnapshot"
+      :snapshot="selectedAuditSnapshot"
+      @close="selectedAuditSnapshot = null"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { RefreshCw as RefreshCwIcon } from 'lucide-vue-next';
-import SettingsPanel from './components/SettingsPanel.vue';
+import MonitorModal from './components/MonitorModal.vue';
+import AuditDetailModal from './components/AuditDetailModal.vue';
 import {
   Chart,
   LineController,
@@ -218,7 +465,6 @@ import {
   CategoryScale,
 } from 'chart.js';
 
-// Registrar componentes de Chart.js
 Chart.register(
   LineController,
   LineElement,
@@ -230,174 +476,304 @@ Chart.register(
   Legend,
 );
 
-interface TradeMethod {
-  tradeMethodName?: string;
-  identifier?: string;
-}
+const currentTab = ref<'live' | 'monitoring'>('live');
 
-interface Adv {
-  advNo?: string;
-  price?: string;
-  surplusAmount?: string;
-  minSingleTransAmount?: string;
-  maxSingleTransAmount?: string;
-  tradeMethods?: TradeMethod[];
-}
+// -----------------------------------------------------------------
+// TAB 1: LIVE OFFERS (MODULE 2)
+// -----------------------------------------------------------------
+const liveLoading = ref(false);
+const liveOffers = ref<any[]>([]);
+const liveFetchedAt = ref<string | null>(null);
+const liveDurationMs = ref<number>(0);
+const liveSearchQuery = ref('');
+const liveAutoRefreshSeconds = ref(0);
+let liveAutoRefreshTimer: ReturnType<typeof setInterval> | null = null;
 
-interface Advertiser {
-  userNo?: string;
-  nickName?: string;
-  userType?: string;
-  monthOrderCount?: number;
-  monthFinishRate?: number;
-}
+const livePayTypesCatalog = ref<Array<{ id: string; label: string }>>([
+  { id: 'Banesco', label: 'Banesco' },
+  { id: 'Mercantil', label: 'Mercantil' },
+  { id: 'BancoDeVenezuela', label: 'BDV' },
+  { id: 'Provincial', label: 'Provincial' },
+  { id: 'PagoMovil', label: 'Pago Móvil' },
+]);
 
-interface AdvertisingItem {
-  adv?: Adv;
-  advertiser?: Advertiser;
-}
+const liveFilters = ref({
+  fiat: 'VES',
+  asset: 'USDT',
+  tradeType: 'BUY',
+  rows: 20,
+  payTypes: ['Banesco', 'PagoMovil'] as string[],
+});
 
-interface AdvertisingSnapshot {
-  id: string;
-  timestamp: string;
-  records: AdvertisingItem[];
-}
+const toggleLivePayType = (id: string) => {
+  const idx = liveFilters.value.payTypes.indexOf(id);
+  if (idx >= 0) {
+    liveFilters.value.payTypes.splice(idx, 1);
+  } else {
+    liveFilters.value.payTypes.push(id);
+  }
+  fetchLiveOffers();
+};
 
-// Estados reactivos
-const periodHours = ref<number>(24);
-const autoRefreshSeconds = ref<number>(10);
-const loading = ref<boolean>(false);
-const error = ref<string | null>(null);
-const historyData = ref<AdvertisingSnapshot[]>([]);
-const searchQuery = ref<string>('');
-const showSettings = ref(false);
-
-const chartCanvas = ref<HTMLCanvasElement | null>(null);
-let chartInstance: Chart | null = null;
-let autoRefreshTimer: ReturnType<typeof setInterval> | null = null;
-
-// Cargar datos de la API
-const fetchData = async () => {
-  loading.value = true;
-  error.value = null;
+const fetchLiveOffers = async () => {
+  liveLoading.value = true;
   try {
-    const res = await fetch(`/api/v1/advertising/history?hours=${periodHours.value}`);
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    const params = new URLSearchParams();
+    params.set('fiat', liveFilters.value.fiat);
+    params.set('asset', liveFilters.value.asset);
+    params.set('tradeType', liveFilters.value.tradeType);
+    params.set('rows', String(liveFilters.value.rows));
+    if (liveFilters.value.payTypes.length) {
+      params.set('payTypes', liveFilters.value.payTypes.join(','));
     }
+
+    const res = await fetch(`/api/v1/live-offers?${params.toString()}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
-    if (json.success && Array.isArray(json.data)) {
-      historyData.value = json.data;
-      await nextTick();
-      renderChart();
-    } else {
-      throw new Error('Respuesta inválida del servidor');
-    }
-  } catch (err: any) {
-    error.value = err.message || 'Error de conexión con el backend';
+
+    liveOffers.value = json.data?.offers || [];
+    liveFetchedAt.value = json.data?.fetchedAt || new Date().toISOString();
+    liveDurationMs.value = json.data?.durationMs || 0;
+  } catch (err) {
+    console.error('Error al consultar ofertas en vivo:', err);
   } finally {
-    loading.value = false;
+    liveLoading.value = false;
   }
 };
 
-const changePeriod = (h: number) => {
-  periodHours.value = h;
-  fetchData();
-};
-
-const setAutoRefresh = (sec: number) => {
-  autoRefreshSeconds.value = sec;
-  if (autoRefreshTimer) {
-    clearInterval(autoRefreshTimer);
-    autoRefreshTimer = null;
-  }
+const setLiveAutoRefresh = (sec: number) => {
+  liveAutoRefreshSeconds.value = sec;
+  if (liveAutoRefreshTimer) clearInterval(liveAutoRefreshTimer);
   if (sec > 0) {
-    autoRefreshTimer = setInterval(fetchData, sec * 1000);
+    liveAutoRefreshTimer = setInterval(fetchLiveOffers, sec * 1000);
   }
 };
 
-// Métricas calculadas para la tarjeta superior
-const latestMetrics = computed(() => {
-  if (historyData.value.length === 0) {
-    return { minPrice: 0, avgPrice: 0, maxPrice: 0, offerCount: 0, formattedTimestamp: '--' };
-  }
-
-  const latest = historyData.value[historyData.value.length - 1];
-  const prices = (latest.records || [])
-    .map((item) => parseFloat(item.adv?.price || '0'))
-    .filter((p) => p > 0);
-
-  if (prices.length === 0) {
-    return { minPrice: 0, avgPrice: 0, maxPrice: 0, offerCount: 0, formattedTimestamp: '--' };
-  }
-
-  const minPrice = Math.min(...prices);
-  const maxPrice = Math.max(...prices);
-  const avgPrice = prices.reduce((a, b) => a + b, 0) / prices.length;
-
-  const date = new Date(latest.timestamp);
-  const formattedTimestamp = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-  return {
-    minPrice,
-    avgPrice,
-    maxPrice,
-    offerCount: latest.records?.length || 0,
-    formattedTimestamp,
-  };
-});
-
-// Ofertas del último snapshot para la tabla
-const latestOffers = computed<AdvertisingItem[]>(() => {
-  if (historyData.value.length === 0) return [];
-  const latest = historyData.value[historyData.value.length - 1];
-  return latest.records || [];
-});
-
-const filteredOffers = computed(() => {
-  if (!searchQuery.value.trim()) return latestOffers.value;
-  const q = searchQuery.value.toLowerCase();
-  return latestOffers.value.filter((item) => {
+const filteredLiveOffers = computed(() => {
+  if (!liveSearchQuery.value.trim()) return liveOffers.value;
+  const q = liveSearchQuery.value.toLowerCase();
+  return liveOffers.value.filter((item) => {
     const nick = item.advertiser?.nickName?.toLowerCase() || '';
-    const methods = (item.adv?.tradeMethods || []).map((m) => (m.tradeMethodName || '').toLowerCase()).join(' ');
+    const methods = (item.adv?.tradeMethods || []).map((m: any) => m.tradeMethodName || '').join(' ').toLowerCase();
     return nick.includes(q) || methods.includes(q);
   });
 });
 
-const formatNumber = (num: number) => {
-  return num.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+// -----------------------------------------------------------------
+// TAB 2: MONITORING & CHARTS (MODULE 1)
+// -----------------------------------------------------------------
+const monitorsList = ref<any[]>([]);
+const selectedMonitorId = ref<string | null>(null);
+const periodHours = ref(24);
+const monitoringLoading = ref(false);
+const monitorSnapshots = ref<any[]>([]);
+const monitorMetrics = ref({ minPrice: 0, avgPrice: 0, maxPrice: 0, latestPrice: 0, offerCount: 0 });
+const monitorAutoRefreshSeconds = ref(0);
+const autoRefreshMode = ref<'off' | 'auto' | 'custom'>('off');
+const customRefreshSeconds = ref(30);
+let monitorAutoRefreshTimer: ReturnType<typeof setInterval> | null = null;
+
+const showMonitorModal = ref(false);
+const editingMonitor = ref<any>(null);
+const selectedAuditSnapshot = ref<any>(null);
+
+// Pagination state for snapshots table
+const snapshotPage = ref(1);
+const snapshotPageSize = ref(10);
+
+const snapshotTotalPages = computed(() =>
+  Math.max(1, Math.ceil(monitorSnapshots.value.length / snapshotPageSize.value)),
+);
+
+const paginatedSnapshots = computed(() => {
+  const start = (snapshotPage.value - 1) * snapshotPageSize.value;
+  return monitorSnapshots.value.slice(start, start + snapshotPageSize.value);
+});
+
+// Show at most 7 page buttons with ellipsis
+const visiblePages = computed(() => {
+  const total = snapshotTotalPages.value;
+  const current = snapshotPage.value;
+  const pages: Array<number | '...'> = [];
+
+  if (total <= 7) {
+    for (let i = 1; i <= total; i++) pages.push(i);
+    return pages;
+  }
+
+  pages.push(1);
+  if (current > 4) pages.push('...');
+
+  const rangeStart = Math.max(2, current - 2);
+  const rangeEnd = Math.min(total - 1, current + 2);
+  for (let i = rangeStart; i <= rangeEnd; i++) pages.push(i);
+
+  if (current < total - 3) pages.push('...');
+  pages.push(total);
+  return pages;
+});
+
+const setPageSize = (size: number) => {
+  snapshotPageSize.value = size;
+  snapshotPage.value = 1;
 };
 
-// Renderizado del Gráfico de Chart.js
+const chartCanvas = ref<HTMLCanvasElement | null>(null);
+let chartInstance: Chart | null = null;
+
+const selectedMonitor = computed(() => monitorsList.value.find((m) => m.id === selectedMonitorId.value));
+
+const fetchMonitors = async () => {
+  try {
+    const res = await fetch('/api/v1/monitors');
+    if (!res.ok) return;
+    const json = await res.json();
+    monitorsList.value = json.data || [];
+    if (monitorsList.value.length > 0 && !selectedMonitorId.value) {
+      selectedMonitorId.value = monitorsList.value[0].id;
+    }
+  } catch (err) {
+    console.error('Error al cargar monitores:', err);
+  }
+};
+
+const selectMonitor = (id: string) => {
+  selectedMonitorId.value = id;
+  snapshotPage.value = 1;
+  fetchMonitorHistory();
+};
+
+const fetchMonitorHistory = async () => {
+  if (!selectedMonitorId.value) return;
+  monitoringLoading.value = true;
+  try {
+    const res = await fetch(`/api/v1/monitors/${selectedMonitorId.value}/history?hours=${periodHours.value}`);
+    if (!res.ok) return;
+    const json = await res.json();
+
+    monitorSnapshots.value = json.data?.snapshots || [];
+    monitorMetrics.value = json.data?.metrics || { minPrice: 0, avgPrice: 0, maxPrice: 0, latestPrice: 0, offerCount: 0 };
+    await nextTick();
+    renderChart();
+  } catch (err) {
+    console.error('Error al cargar historial del monitor:', err);
+  } finally {
+    monitoringLoading.value = false;
+  }
+};
+
+const triggerCollectionNow = async () => {
+  if (!selectedMonitorId.value) return;
+  monitoringLoading.value = true;
+  try {
+    await fetch(`/api/v1/monitors/${selectedMonitorId.value}/collect`, { method: 'POST' });
+    await fetchMonitorHistory();
+  } finally {
+    monitoringLoading.value = false;
+  }
+};
+
+const setMonitorAutoRefresh = (sec: number) => {
+  monitorAutoRefreshSeconds.value = sec;
+  if (monitorAutoRefreshTimer) clearInterval(monitorAutoRefreshTimer);
+  monitorAutoRefreshTimer = null;
+  if (sec > 0) {
+    monitorAutoRefreshTimer = setInterval(() => {
+      fetchMonitorHistory();
+    }, sec * 1000);
+  }
+};
+
+const setAutoRefreshMode = (mode: 'off' | 'auto' | 'custom') => {
+  autoRefreshMode.value = mode;
+  if (mode === 'off') {
+    setMonitorAutoRefresh(0);
+  } else if (mode === 'auto') {
+    const intervalSec = selectedMonitor.value ? Math.round(selectedMonitor.value.cronIntervalMs / 1000) : 60;
+    setMonitorAutoRefresh(Math.max(5, intervalSec));
+  } else {
+    applyCustomRefresh();
+  }
+};
+
+const applyCustomRefresh = () => {
+  const sec = Math.max(5, Math.min(3600, Number(customRefreshSeconds.value) || 30));
+  customRefreshSeconds.value = sec;
+  setMonitorAutoRefresh(sec);
+};
+
+const changePeriod = (h: number) => {
+  periodHours.value = h;
+  snapshotPage.value = 1;
+  fetchMonitorHistory();
+};
+
+const openCreateMonitorModal = () => {
+  editingMonitor.value = null;
+  showMonitorModal.value = true;
+};
+
+const openEditMonitorModal = (m: any) => {
+  editingMonitor.value = m;
+  showMonitorModal.value = true;
+};
+
+const deleteSelectedMonitor = async () => {
+  if (!selectedMonitorId.value) return;
+  if (!confirm(`¿Seguro que deseas eliminar el monitor '${selectedMonitor.value?.name}'?`)) return;
+
+  try {
+    await fetch(`/api/v1/monitors/${selectedMonitorId.value}`, { method: 'DELETE' });
+    selectedMonitorId.value = null;
+    await fetchMonitors();
+    if (monitorsList.value.length > 0) {
+      selectedMonitorId.value = monitorsList.value[0].id;
+      fetchMonitorHistory();
+    }
+  } catch (err) {
+    console.error('Error al eliminar monitor:', err);
+  }
+};
+
+const onMonitorSaved = async () => {
+  await fetchMonitors();
+  fetchMonitorHistory();
+};
+
+const inspectAuditSnapshot = (snap: any) => {
+  selectedAuditSnapshot.value = snap;
+};
+
 const renderChart = () => {
   if (!chartCanvas.value) return;
+
+  if (chartInstance) {
+    chartInstance.destroy();
+    chartInstance = null;
+  }
 
   const labels: string[] = [];
   const minPrices: number[] = [];
   const avgPrices: number[] = [];
   const maxPrices: number[] = [];
 
-  historyData.value.forEach((snapshot) => {
-    const d = new Date(snapshot.timestamp);
-    labels.push(d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+  for (const snap of monitorSnapshots.value) {
+    const timeLabel = new Date(snap.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    labels.push(timeLabel);
 
-    const prices = (snapshot.records || [])
-      .map((item) => parseFloat(item.adv?.price || '0'))
-      .filter((p) => p > 0);
+    const prices = (snap.records || [])
+      .map((r: any) => parseFloat(r.adv?.price))
+      .filter((p: number) => !isNaN(p) && p > 0);
 
     if (prices.length > 0) {
       minPrices.push(Math.min(...prices));
       maxPrices.push(Math.max(...prices));
-      avgPrices.push(prices.reduce((a, b) => a + b, 0) / prices.length);
+      avgPrices.push(prices.reduce((a: number, b: number) => a + b, 0) / prices.length);
     } else {
       minPrices.push(0);
       avgPrices.push(0);
       maxPrices.push(0);
     }
-  });
-
-  if (chartInstance) {
-    chartInstance.destroy();
   }
 
   chartInstance = new Chart(chartCanvas.value, {
@@ -408,85 +784,83 @@ const renderChart = () => {
         {
           label: 'Precio Mínimo (Bs)',
           data: minPrices,
-          borderColor: '#0ECB81',
-          backgroundColor: 'rgba(14, 203, 129, 0.1)',
-          borderWidth: 2.5,
+          borderColor: '#0ecb81',
+          backgroundColor: 'rgba(14, 203, 129, 0.08)',
           tension: 0.3,
+          fill: '+2',
           pointRadius: 3,
         },
         {
           label: 'Precio Promedio (Bs)',
           data: avgPrices,
-          borderColor: '#F0B90B',
-          borderWidth: 2,
-          borderDash: [4, 4],
+          borderColor: '#f0b90b',
+          backgroundColor: 'transparent',
+          borderDash: [5, 5],
           tension: 0.3,
-          pointRadius: 2,
+          pointRadius: 3,
         },
         {
           label: 'Precio Máximo (Bs)',
           data: maxPrices,
-          borderColor: '#F6465D',
-          borderWidth: 1.5,
+          borderColor: '#f6465d',
+          backgroundColor: 'rgba(246, 70, 93, 0.06)',
           tension: 0.3,
-          pointRadius: 2,
+          fill: false,
+          pointRadius: 3,
         },
       ],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      interaction: {
-        mode: 'index',
-        intersect: false,
-      },
-      plugins: {
-        legend: {
-          labels: {
-            color: '#EAECEF',
-            font: { family: 'IBM Plex Sans', size: 12 },
+      interaction: { mode: 'index', intersect: false },
+      scales: {
+        x: { grid: { color: '#2b313a' }, ticks: { color: '#848e9c', maxRotation: 45 } },
+        y: {
+          grid: { color: '#2b313a' },
+          ticks: {
+            color: '#848e9c',
+            callback: (v: any) => `${Number(v).toLocaleString('es-VE', { minimumFractionDigits: 0 })} Bs`,
           },
         },
-        tooltip: {
-          backgroundColor: '#181A20',
-          titleColor: '#F0B90B',
-          bodyColor: '#EAECEF',
-          borderColor: '#2B313A',
-          borderWidth: 1,
-          padding: 12,
-        },
       },
-      scales: {
-        x: {
-          grid: { color: 'rgba(43, 49, 58, 0.5)' },
-          ticks: { color: '#848E9C', font: { family: 'IBM Plex Sans' } },
-        },
-        y: {
-          grid: { color: 'rgba(43, 49, 58, 0.5)' },
-          ticks: { color: '#848E9C', font: { family: 'IBM Plex Sans' } },
+      plugins: {
+        legend: { labels: { color: '#eaecef', boxWidth: 12 } },
+        tooltip: {
+          backgroundColor: '#1e2329',
+          borderColor: '#2b313a',
+          borderWidth: 1,
+          titleColor: '#eaecef',
+          bodyColor: '#848e9c',
+          callbacks: {
+            label: (ctx: any) => ` ${ctx.dataset.label}: Bs. ${Number(ctx.parsed.y).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          },
         },
       },
     },
   });
 };
 
+const formatNumber = (val: number) => {
+  if (!val || isNaN(val)) return '0.00';
+  return val.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
+watch(currentTab, (newTab) => {
+  if (newTab === 'live') {
+    fetchLiveOffers();
+  } else if (newTab === 'monitoring') {
+    fetchMonitors().then(() => fetchMonitorHistory());
+  }
+});
+
 onMounted(() => {
-  fetchData();
-  setAutoRefresh(autoRefreshSeconds.value);
+  fetchLiveOffers();
 });
 
 onUnmounted(() => {
-  if (autoRefreshTimer) {
-    clearInterval(autoRefreshTimer);
-  }
-  if (chartInstance) {
-    chartInstance.destroy();
-  }
+  if (liveAutoRefreshTimer) clearInterval(liveAutoRefreshTimer);
+  if (monitorAutoRefreshTimer) clearInterval(monitorAutoRefreshTimer);
+  if (chartInstance) chartInstance.destroy();
 });
 </script>
-
-<style scoped>
-.spin {
-  animation: spin 1s linear infinite;
-}
-</style>
