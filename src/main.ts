@@ -10,6 +10,7 @@ async function bootstrap() {
     .setDescription('API para monitoreo de ofertas de Binance P2P, recolección periódica y consulta de historial.')
     .setVersion('1.0')
     .addTag('Advertising', 'Endpoints para consultar ofertas e historial de anuncios P2P')
+    .addTag('Settings', 'Parámetros de recolección, filtros de banco y persistencia')
     .build();
 
   const documentFactory = () => SwaggerModule.createDocument(app, config);

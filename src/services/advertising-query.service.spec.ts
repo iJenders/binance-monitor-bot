@@ -11,6 +11,7 @@ describe('AdvertisingQueryService', () => {
     mockRepository = {
       saveSnapshot: vi.fn(),
       findByTimeRange: vi.fn().mockResolvedValue([]),
+      purgeOlderThan: vi.fn().mockResolvedValue(0),
     };
     service = new AdvertisingQueryService(mockRepository);
   });

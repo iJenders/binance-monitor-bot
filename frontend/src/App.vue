@@ -11,6 +11,7 @@
       </div>
 
       <div class="header-actions">
+        <button class="btn-tab" type="button" @click="showSettings = true">Configuración</button>
         <div class="live-badge">
           <div class="pulse-dot"></div>
           <span>CRON ACTIVO</span>
@@ -197,12 +198,14 @@
         </section>
       </template>
     </main>
+    <SettingsPanel v-if="showSettings" @close="showSettings = false" @saved="fetchData" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { RefreshCw as RefreshCwIcon } from 'lucide-vue-next';
+import SettingsPanel from './components/SettingsPanel.vue';
 import {
   Chart,
   LineController,
@@ -267,6 +270,7 @@ const loading = ref<boolean>(false);
 const error = ref<string | null>(null);
 const historyData = ref<AdvertisingSnapshot[]>([]);
 const searchQuery = ref<string>('');
+const showSettings = ref(false);
 
 const chartCanvas = ref<HTMLCanvasElement | null>(null);
 let chartInstance: Chart | null = null;

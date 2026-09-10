@@ -1,22 +1,37 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'node:fs/promises';
+import * as os from 'node:os';
 import * as path from 'node:path';
 import { FileAdvertisingRepositoryAdapter } from './file-advertising-repository.adapter.js';
 import { AdvertisingSnapshot } from '../domain/advertising-snapshot.domain.js';
+import { AppSettingsService } from '../services/app-settings.service.js';
+import { AppSettings } from '../domain/app-settings.js';
 
 describe('FileAdvertisingRepositoryAdapter', () => {
   let repository: FileAdvertisingRepositoryAdapter;
-  const dataDir = path.join(process.cwd(), 'data');
-  const filePath = path.join(dataDir, 'advertising_history.jsonl');
+  let filePath: string;
+  let dataDir: string;
 
-  beforeEach(() => {
-    repository = new FileAdvertisingRepositoryAdapter();
+  const settings = (dataFilePath: string): AppSettingsService =>
+    ({
+      get: async (): Promise<AppSettings> =>
+        ({
+          cronIntervalMs: 60_000,
+          offersRows: 20,
+          payTypes: [],
+          retentionHours: 48,
+          dataFilePath,
+        }) as AppSettings,
+    }) as AppSettingsService;
+
+  beforeEach(async () => {
+    dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'advertising-repo-'));
+    filePath = path.join(dataDir, 'advertising_history.jsonl');
+    repository = new FileAdvertisingRepositoryAdapter(settings(filePath));
   });
 
   afterEach(async () => {
-    try {
-      await fs.rm(filePath, { force: true });
-    } catch {}
+    await fs.rm(dataDir, { recursive: true, force: true });
   });
 
   it('should save snapshot and retrieve it within time range', async () => {
@@ -50,5 +65,25 @@ describe('FileAdvertisingRepositoryAdapter', () => {
 
     const results = await repository.findByTimeRange(new Date('2026-01-01'), new Date('2026-01-02'));
     expect(results).toHaveLength(0);
+  });
+
+  it('should purge snapshots older than the cutoff', async () => {
+    await repository.saveSnapshot({
+      id: 'old',
+      timestamp: '2020-01-01T00:00:00.000Z',
+      records: [],
+    });
+    await repository.saveSnapshot({
+      id: 'new',
+      timestamp: '2026-09-10T00:00:00.000Z',
+      records: [],
+    });
+
+    const removed = await repository.purgeOlderThan(new Date('2026-01-01T00:00:00.000Z'));
+    expect(removed).toBe(1);
+
+    const remaining = await repository.findByTimeRange(new Date('2010-01-01'), new Date('2030-01-01'));
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0].id).toBe('new');
   });
 });

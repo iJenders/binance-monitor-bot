@@ -1,15 +1,20 @@
 import { Injectable } from '@nestjs/common';
-import { BinanceAdapter } from './adapters/binance-ves.binance-api.js';
 import { Advertising } from './domain/advertising.js';
+import { BinanceVesPort } from './ports/binance-ves.port.js';
+import { AppSettingsService } from './services/app-settings.service.js';
 
 @Injectable()
 export class AppService {
+  constructor(
+    private readonly binanceVesPort: BinanceVesPort,
+    private readonly appSettings: AppSettingsService,
+  ) {}
+
   async getAdvertisings(): Promise<Advertising[]> {
-    let binanceAdapter = new BinanceAdapter();
-
-    let listaDeOfertas = await binanceAdapter.getBinanceOffers();
-    console.log(listaDeOfertas);
-
-    return listaDeOfertas;
+    const settings = await this.appSettings.get();
+    return this.binanceVesPort.getBinanceOffers({
+      rows: settings.offersRows,
+      payTypes: settings.payTypes,
+    });
   }
 }

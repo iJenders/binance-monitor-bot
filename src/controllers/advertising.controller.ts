@@ -1,11 +1,26 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Post, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery, ApiResponse } from '@nestjs/swagger';
 import { AdvertisingQueryService } from '../services/advertising-query.service.js';
+import { AdvertisingCronService } from '../services/advertising-cron.service.js';
 
 @ApiTags('Advertising')
 @Controller('api/v1/advertising')
 export class AdvertisingController {
-  constructor(private readonly advertisingQueryService: AdvertisingQueryService) {}
+  constructor(
+    private readonly advertisingQueryService: AdvertisingQueryService,
+    private readonly advertisingCronService: AdvertisingCronService,
+  ) {}
+
+  @Post('collect')
+  @ApiOperation({
+    summary: 'Forzar una recolección inmediata',
+    description: 'Ejecuta una captura de ofertas con la configuración actual y la persiste en el historial.',
+  })
+  @ApiResponse({ status: 201, description: 'Recolección disparada.' })
+  async collectNow() {
+    await this.advertisingCronService.fetchAndStoreAdvertisings();
+    return { success: true };
+  }
 
   @Get('history')
   @ApiOperation({

@@ -14,15 +14,20 @@ import { FileAdvertisingRepositoryAdapter } from './adapters/file-advertising-re
 import { AdvertisingCronService } from './services/advertising-cron.service.js';
 import { AdvertisingQueryService } from './services/advertising-query.service.js';
 import { AdvertisingController } from './controllers/advertising.controller.js';
+import { AppSettingsPort } from './ports/app-settings.port.js';
+import { FileAppSettingsAdapter } from './adapters/file-app-settings.adapter.js';
+import { AppSettingsService } from './services/app-settings.service.js';
+import { SettingsController } from './controllers/settings.controller.js';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
   ],
-  controllers: [AppController, AdvertisingController],
+  controllers: [AppController, AdvertisingController, SettingsController],
   providers: [
     AppService,
+    AppSettingsService,
     AdvertisingCronService,
     AdvertisingQueryService,
     {
@@ -32,6 +37,10 @@ import { AdvertisingController } from './controllers/advertising.controller.js';
     {
       provide: AdvertisingRepositoryPort,
       useClass: FileAdvertisingRepositoryAdapter,
+    },
+    {
+      provide: AppSettingsPort,
+      useClass: FileAppSettingsAdapter,
     },
   ],
 })

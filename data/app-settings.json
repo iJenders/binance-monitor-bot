@@ -1,0 +1,9 @@
+{
+  "cronIntervalMs": 60000,
+  "offersRows": 20,
+  "payTypes": [
+    "BancoDeVenezuela"
+  ],
+  "retentionHours": 48,
+  "dataFilePath": "data/advertising_history.jsonl"
+}
