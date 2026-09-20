@@ -439,6 +439,21 @@
             </div>
           </section>
 
+          <!-- Current Instant StdDev Chart -->
+          <section class="chart-card">
+            <div class="card-header">
+              <div>
+                <h2 class="card-title">Desviación Estándar (Instante Actual)</h2>
+                <p style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">
+                  Distribución de precios en el último snapshot respecto a la media y desviación estándar (σ = {{ formatNumber(monitorMetrics.currentStdDevPrice) }})
+                </p>
+              </div>
+            </div>
+            <div class="chart-wrapper">
+              <canvas ref="stdDevCanvas"></canvas>
+            </div>
+          </section>
+
           <!-- Audit Trail & Snapshots Data Table -->
           <section class="table-card">
             <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
@@ -630,6 +645,9 @@ import {
   Tooltip,
   Legend,
   CategoryScale,
+  BarController,
+  BarElement,
+  Filler,
 } from 'chart.js';
 
 Chart.register(
@@ -641,6 +659,9 @@ Chart.register(
   Title,
   Tooltip,
   Legend,
+  BarController,
+  BarElement,
+  Filler,
 );
 
 const currentTab = ref<'live' | 'monitoring'>('live');
@@ -850,6 +871,9 @@ const setPageSize = (size: number) => {
 const chartCanvas = ref<HTMLCanvasElement | null>(null);
 let chartInstance: Chart | null = null;
 
+const stdDevCanvas = ref<HTMLCanvasElement | null>(null);
+let stdDevChartInstance: Chart | null = null;
+
 const selectedMonitor = computed(() => monitorsList.value.find((m) => m.id === selectedMonitorId.value));
 
 const fetchMonitors = async () => {
@@ -911,6 +935,7 @@ const fetchMonitorHistory = async () => {
     };
     await nextTick();
     renderChart();
+    renderStdDevChart();
   } catch (err) {
     console.error('Error al cargar historial del monitor:', err);
   } finally {
@@ -1004,7 +1029,10 @@ const onSnapshotDeleted = (snapshotId: string) => {
   const idx = monitorSnapshots.value.findIndex((s: any) => s.id === snapshotId);
   if (idx !== -1) {
     monitorSnapshots.value.splice(idx, 1);
-    nextTick(() => renderChart());
+    nextTick(() => {
+      renderChart();
+      renderStdDevChart();
+    });
   }
   selectedAuditSnapshot.value = null;
 };
@@ -1013,8 +1041,11 @@ const onSnapshotDeleted = (snapshotId: string) => {
 const renderChart = () => {
   if (!chartCanvas.value) return;
 
+  const existingChart = Chart.getChart(chartCanvas.value);
+  if (existingChart) {
+    existingChart.destroy();
+  }
   if (chartInstance) {
-    chartInstance.destroy();
     chartInstance = null;
   }
 
@@ -1155,6 +1186,106 @@ const renderChart = () => {
   });
 };
 
+const renderStdDevChart = () => {
+  if (!stdDevCanvas.value) return;
+
+  const existingChart = Chart.getChart(stdDevCanvas.value);
+  if (existingChart) {
+    existingChart.destroy();
+  }
+  if (stdDevChartInstance) {
+    stdDevChartInstance = null;
+  }
+
+  if (monitorSnapshots.value.length === 0) return;
+
+  const latestSnapshot = monitorSnapshots.value[monitorSnapshots.value.length - 1];
+  const allRecords = latestSnapshot.records || [];
+  const regularRecords = allRecords.filter((r: any) => !(typeof r.privilegeType === 'number' && r.privilegeType > 0));
+  
+  const prices = regularRecords
+    .map((r: any) => parseFloat(r.adv?.price))
+    .filter((p: number) => !isNaN(p) && p > 0)
+    .sort((a: number, b: number) => a - b);
+
+  if (prices.length === 0) return;
+
+  const avg = monitorMetrics.value.currentAvgPrice;
+  const stdDev = monitorMetrics.value.currentStdDevPrice;
+  const upperStdDev = avg + stdDev;
+  const lowerStdDev = avg - stdDev;
+
+  const labels = prices.map((_, i) => `Oferta ${i + 1}`);
+
+  stdDevChartInstance = new Chart(stdDevCanvas.value, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Precio (Bs)',
+          data: prices,
+          backgroundColor: '#3b82f6',
+          borderRadius: 2,
+        },
+        {
+          label: 'Media',
+          data: Array(prices.length).fill(avg),
+          type: 'line',
+          borderColor: '#f0b90b',
+          borderWidth: 2,
+          pointRadius: 0,
+          fill: false,
+        },
+        {
+          label: '+1 Desviación (σ)',
+          data: Array(prices.length).fill(upperStdDev),
+          type: 'line',
+          borderColor: 'rgba(246, 70, 93, 0.8)',
+          borderWidth: 1,
+          borderDash: [5, 5],
+          pointRadius: 0,
+          fill: false,
+        },
+        {
+          label: '-1 Desviación (σ)',
+          data: Array(prices.length).fill(lowerStdDev),
+          type: 'line',
+          borderColor: 'rgba(14, 203, 129, 0.8)',
+          borderWidth: 1,
+          borderDash: [5, 5],
+          pointRadius: 0,
+          fill: false,
+        }
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#eaecef' } },
+        tooltip: {
+          backgroundColor: '#181a20',
+          titleColor: '#848e9c',
+          bodyColor: '#ffffff',
+          callbacks: {
+            label: (ctx: any) => ` ${ctx.dataset.label}: Bs. ${Number(ctx.parsed.y).toLocaleString('es-VE', { minimumFractionDigits: 2 })}`,
+          },
+        },
+      },
+      scales: {
+        x: { display: false },
+        y: {
+          grid: { color: '#2b313a' },
+          ticks: { color: '#848e9c' },
+          min: Math.max(0, lowerStdDev - stdDev), // Padding
+          max: upperStdDev + stdDev,
+        },
+      },
+    },
+  });
+};
+
 const formatNumber = (val: number) => {
   if (!val || isNaN(val)) return '0.00';
   return val.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -1168,6 +1299,14 @@ watch(currentTab, (newTab) => {
   }
 });
 
+watch(monitorSnapshots, () => {
+  if (currentTab.value === 'monitoring') {
+    nextTick(() => {
+      renderStdDevChart();
+    });
+  }
+}, { deep: false });
+
 onMounted(() => {
   fetchLiveOffers();
 });
@@ -1176,5 +1315,6 @@ onUnmounted(() => {
   if (liveAutoRefreshTimer) clearInterval(liveAutoRefreshTimer);
   if (monitorAutoRefreshTimer) clearInterval(monitorAutoRefreshTimer);
   if (chartInstance) chartInstance.destroy();
+  if (stdDevChartInstance) stdDevChartInstance.destroy();
 });
 </script>

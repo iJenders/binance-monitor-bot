@@ -107,6 +107,14 @@
           </div>
         </div>
 
+        <!-- Mean / StdDev Chart -->
+        <div class="table-card" style="padding: 16px;">
+          <h3 class="audit-section-title">Distribución de Precios (Media y Desviación)</h3>
+          <div style="position: relative; height: 250px; width: 100%;">
+            <canvas ref="modalChartCanvas"></canvas>
+          </div>
+        </div>
+
         <!-- Offers Table -->
         <div class="table-card" style="padding: 16px;">
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 12px;">
@@ -194,7 +202,31 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted, onUnmounted, nextTick, watch } from 'vue';
+import {
+  Chart,
+  BarController,
+  BarElement,
+  LineController,
+  LineElement,
+  PointElement,
+  LinearScale,
+  CategoryScale,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+
+Chart.register(
+  BarController,
+  BarElement,
+  LineController,
+  LineElement,
+  PointElement,
+  LinearScale,
+  CategoryScale,
+  Tooltip,
+  Legend
+);
 
 const props = defineProps<{
   snapshot: any;
@@ -246,6 +278,121 @@ const confirmDelete = async () => {
     deleting.value = false;
   }
 };
+
+const modalChartCanvas = ref<HTMLCanvasElement | null>(null);
+let modalChartInstance: Chart | null = null;
+
+const renderModalChart = () => {
+  if (!modalChartCanvas.value) return;
+
+  const existingChart = Chart.getChart(modalChartCanvas.value);
+  if (existingChart) existingChart.destroy();
+  if (modalChartInstance) modalChartInstance = null;
+
+  const allRecords = records.value;
+  const regularRecords = allRecords.filter((r: any) => !(typeof r.privilegeType === 'number' && r.privilegeType > 0));
+  
+  const prices = regularRecords
+    .map((r: any) => parseFloat(r.adv?.price))
+    .filter((p: number) => !isNaN(p) && p > 0)
+    .sort((a: number, b: number) => a - b);
+
+  if (prices.length === 0) return;
+
+  const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+  const variance = prices.reduce((sum, val) => sum + Math.pow(val - avg, 2), 0) / prices.length;
+  const stdDev = Math.sqrt(variance);
+
+  const upperStdDev = avg + stdDev;
+  const lowerStdDev = avg - stdDev;
+  const labels = prices.map((_, i) => `Oferta ${i + 1}`);
+
+  modalChartInstance = new Chart(modalChartCanvas.value, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Precio (Bs)',
+          data: prices,
+          backgroundColor: '#3b82f6',
+          borderRadius: 2,
+        },
+        {
+          label: 'Media',
+          data: Array(prices.length).fill(avg),
+          type: 'line',
+          borderColor: '#f0b90b',
+          borderWidth: 2,
+          pointRadius: 0,
+          fill: false,
+        },
+        {
+          label: '+1 Desviación (σ)',
+          data: Array(prices.length).fill(upperStdDev),
+          type: 'line',
+          borderColor: 'rgba(246, 70, 93, 0.8)',
+          borderWidth: 1,
+          borderDash: [5, 5],
+          pointRadius: 0,
+          fill: false,
+        },
+        {
+          label: '-1 Desviación (σ)',
+          data: Array(prices.length).fill(lowerStdDev),
+          type: 'line',
+          borderColor: 'rgba(14, 203, 129, 0.8)',
+          borderWidth: 1,
+          borderDash: [5, 5],
+          pointRadius: 0,
+          fill: false,
+        }
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#eaecef' } },
+        tooltip: {
+          backgroundColor: '#181a20',
+          titleColor: '#848e9c',
+          bodyColor: '#ffffff',
+          callbacks: {
+            label: (ctx: any) => ` ${ctx.dataset.label}: Bs. ${Number(ctx.parsed.y).toLocaleString('es-VE', { minimumFractionDigits: 2 })}`,
+          },
+        },
+      },
+      scales: {
+        x: { display: false },
+        y: {
+          grid: { color: '#2b313a' },
+          ticks: { color: '#848e9c' },
+          min: Math.max(0, lowerStdDev - stdDev),
+          max: upperStdDev + stdDev,
+        },
+      },
+    },
+  });
+};
+
+watch(records, () => {
+  nextTick(() => {
+    renderModalChart();
+  });
+});
+
+onMounted(() => {
+  nextTick(() => {
+    renderModalChart();
+  });
+});
+
+onUnmounted(() => {
+  if (modalChartInstance) {
+    modalChartInstance.destroy();
+  }
+});
 </script>
 
 <style scoped>
