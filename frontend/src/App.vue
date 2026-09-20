@@ -322,21 +322,58 @@
           <!-- Metrics Overview Grid -->
           <section class="metrics-grid">
             <div class="metric-card">
-              <span class="metric-label">Precio Mínimo Actual</span>
-              <span class="metric-value highlight-green">Bs. {{ formatNumber(monitorMetrics.minPrice) }}</span>
-              <span class="metric-sub">Mejor precio capturado por este cron</span>
+              <span class="metric-label">Precio Mínimo</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                <div>
+                  <div style="font-size: 11px; color: var(--text-secondary);">Instante Actual</div>
+                  <div class="metric-value highlight-green" style="font-size: 18px;">Bs. {{ formatNumber(monitorMetrics.currentMinPrice) }}</div>
+                </div>
+                <div style="text-align: right;">
+                  <div style="font-size: 11px; color: var(--text-secondary);">Período (Histórico)</div>
+                  <div class="metric-value" style="font-size: 14px; opacity: 0.8;">Bs. {{ formatNumber(monitorMetrics.historicalMinPrice) }}</div>
+                </div>
+              </div>
+              <span class="metric-sub">Comparativa de precios mínimos</span>
             </div>
 
             <div class="metric-card">
               <span class="metric-label">Precio Promedio</span>
-              <span class="metric-value highlight-gold">Bs. {{ formatNumber(monitorMetrics.avgPrice) }}</span>
-              <span class="metric-sub">Promedio en snapshots del período</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                <div>
+                  <div style="font-size: 11px; color: var(--text-secondary);">Instante Actual</div>
+                  <div class="metric-value highlight-gold" style="font-size: 18px;">Bs. {{ formatNumber(monitorMetrics.currentAvgPrice) }}</div>
+                </div>
+                <div style="text-align: right;">
+                  <div style="font-size: 11px; color: var(--text-secondary);">Período (Histórico)</div>
+                  <div class="metric-value" style="font-size: 14px; opacity: 0.8;">Bs. {{ formatNumber(monitorMetrics.historicalAvgPrice) }}</div>
+                </div>
+              </div>
+              <span class="metric-sub">Comparativa de precios promedios</span>
             </div>
 
             <div class="metric-card">
               <span class="metric-label">Precio Máximo</span>
-              <span class="metric-value">Bs. {{ formatNumber(monitorMetrics.maxPrice) }}</span>
-              <span class="metric-sub">Toque superior en el período</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                <div>
+                  <div style="font-size: 11px; color: var(--text-secondary);">Instante Actual</div>
+                  <div class="metric-value" style="font-size: 18px;">Bs. {{ formatNumber(monitorMetrics.currentMaxPrice) }}</div>
+                </div>
+                <div style="text-align: right;">
+                  <div style="font-size: 11px; color: var(--text-secondary);">Período (Histórico)</div>
+                  <div class="metric-value" style="font-size: 14px; opacity: 0.8;">Bs. {{ formatNumber(monitorMetrics.historicalMaxPrice) }}</div>
+                </div>
+              </div>
+              <span class="metric-sub">
+                Comparativa de topes máximos
+                <span
+                  v-if="monitorMetrics.promotedCount > 0"
+                  class="badge-tag"
+                  style="margin-left: 4px; color: #a855f7; border-color: rgba(168,85,247,0.4); font-size: 10px;"
+                  title="Anuncios promocionados excluidos del cálculo"
+                >
+                  🎯 {{ monitorMetrics.promotedCount }} promoc. excl.
+                </span>
+              </span>
             </div>
 
             <div class="metric-card">
@@ -474,14 +511,6 @@
                       <div style="display: flex; gap: 6px;">
                         <button class="btn-tab" style="padding: 4px 8px; font-size: 12px;" @click="inspectAuditSnapshot(snap)">
                           🔍 Ver
-                        </button>
-                        <button
-                          class="btn-tab"
-                          style="padding: 4px 8px; font-size: 12px; color: var(--color-red); border-color: rgba(246,70,93,0.4);"
-                          :title="'Eliminar snapshot ' + snap.id.substring(0,8)"
-                          @click="deleteSnapshotInline(snap)"
-                        >
-                          🗑
                         </button>
                       </div>
                     </td>
@@ -682,7 +711,16 @@ const selectedMonitorId = ref<string | null>(null);
 const periodHours = ref(24);
 const monitoringLoading = ref(false);
 const monitorSnapshots = ref<any[]>([]);
-const monitorMetrics = ref({ minPrice: 0, avgPrice: 0, maxPrice: 0, latestPrice: 0, offerCount: 0 });
+const monitorMetrics = ref({
+  historicalMinPrice: 0,
+  historicalAvgPrice: 0,
+  historicalMaxPrice: 0,
+  currentMinPrice: 0,
+  currentAvgPrice: 0,
+  currentMaxPrice: 0,
+  offerCount: 0,
+  promotedCount: 0,
+});
 const monitorAutoRefreshSeconds = ref(0);
 const autoRefreshMode = ref<'off' | 'auto' | 'custom'>('auto');
 const customRefreshSeconds = ref(30);
@@ -807,7 +845,16 @@ const fetchMonitorHistory = async () => {
     const json = await res.json();
 
     monitorSnapshots.value = json.data?.snapshots || [];
-    monitorMetrics.value = json.data?.metrics || { minPrice: 0, avgPrice: 0, maxPrice: 0, latestPrice: 0, offerCount: 0 };
+    monitorMetrics.value = json.data?.metrics || {
+      historicalMinPrice: 0,
+      historicalAvgPrice: 0,
+      historicalMaxPrice: 0,
+      currentMinPrice: 0,
+      currentAvgPrice: 0,
+      currentMaxPrice: 0,
+      offerCount: 0,
+      promotedCount: 0,
+    };
     await nextTick();
     renderChart();
   } catch (err) {
@@ -908,20 +955,6 @@ const onSnapshotDeleted = (snapshotId: string) => {
   selectedAuditSnapshot.value = null;
 };
 
-const deleteSnapshotInline = async (snap: any) => {
-  if (!confirm(`¿Eliminar el snapshot ${snap.id.substring(0, 8)}…?\nEsta acción no se puede deshacer.`)) return;
-  try {
-    const res = await fetch(`/api/v1/monitors/${snap.monitorId}/snapshots/${snap.id}`, { method: 'DELETE' });
-    if (!res.ok) {
-      const err = await res.json().catch(() => null);
-      alert(`Error al eliminar: ${err?.message || res.status}`);
-      return;
-    }
-    onSnapshotDeleted(snap.id);
-  } catch (e: any) {
-    alert(`Error de red: ${e.message}`);
-  }
-};
 
 const renderChart = () => {
   if (!chartCanvas.value) return;
@@ -935,12 +968,21 @@ const renderChart = () => {
   const minPrices: number[] = [];
   const avgPrices: number[] = [];
   const maxPrices: number[] = [];
+  // Promoted series: one representative price per snapshot (highest promoted price), or null if absent
+  const promotedPrices: (number | null)[] = [];
 
   for (const snap of monitorSnapshots.value) {
     const timeLabel = new Date(snap.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     labels.push(timeLabel);
 
-    const prices = (snap.records || [])
+    const allRecords = snap.records || [];
+
+    // Separate promoted from regular records
+    const regularRecords = allRecords.filter((r: any) => !(typeof r.privilegeType === 'number' && r.privilegeType > 0));
+    const promotedRecords = allRecords.filter((r: any) => typeof r.privilegeType === 'number' && r.privilegeType > 0);
+
+    // Regular price series (min/avg/max exclude promoted)
+    const prices = regularRecords
       .map((r: any) => parseFloat(r.adv?.price))
       .filter((p: number) => !isNaN(p) && p > 0);
 
@@ -953,6 +995,13 @@ const renderChart = () => {
       avgPrices.push(0);
       maxPrices.push(0);
     }
+
+    // Promoted series: use the highest price among promoted records in this snapshot
+    const promotedPriceValues = promotedRecords
+      .map((r: any) => parseFloat(r.adv?.price))
+      .filter((p: number) => !isNaN(p) && p > 0);
+
+    promotedPrices.push(promotedPriceValues.length > 0 ? Math.max(...promotedPriceValues) : null);
   }
 
   chartInstance = new Chart(chartCanvas.value, {
@@ -989,6 +1038,19 @@ const renderChart = () => {
           fill: false,
           pointRadius: 4,
           pointHoverRadius: 8,
+        },
+        {
+          label: 'Promocionado (Bs)',
+          data: promotedPrices,
+          borderColor: '#a855f7',
+          backgroundColor: 'rgba(168, 85, 247, 0.08)',
+          borderDash: [4, 4],
+          tension: 0.3,
+          fill: false,
+          pointRadius: 5,
+          pointHoverRadius: 9,
+          hidden: true,    // oculto por defecto — activar desde la leyenda
+          spanGaps: false, // no conectar puntos cuando no hay promocionado en un snapshot
         },
       ],
     },
