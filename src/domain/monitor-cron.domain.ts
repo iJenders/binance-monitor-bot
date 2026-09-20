@@ -4,6 +4,8 @@ export interface MonitorQueryFilter {
   tradeType: 'BUY' | 'SELL';
   payTypes: string[];
   rows: number;
+  transAmount?: number | null;
+  transAmountUnit?: 'FIAT' | 'ASSET' | null;
 }
 
 export interface MonitorRetentionPolicy {

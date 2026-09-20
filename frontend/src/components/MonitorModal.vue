@@ -11,34 +11,70 @@
 
       <form class="settings-form" @submit.prevent="save">
         <label class="form-field">
-          <span>Nombre del Monitor *</span>
+          <span>
+            Nombre del Monitor *
+            <span class="tooltip-wrapper">
+              <span class="tooltip-icon">?</span>
+              <span class="tooltip-text">Identificador único y descriptivo para esta tarea automática de monitoreo.</span>
+            </span>
+          </span>
           <input v-model="form.name" class="search-input form-input" type="text" placeholder="Ej. Monitor Banesco Express" required />
         </label>
 
         <div class="settings-grid">
           <label class="form-field">
-            <span>Frecuencia del Cron (segundos) *</span>
+            <span>
+              Frecuencia del Cron (segundos) *
+              <span class="tooltip-wrapper">
+                <span class="tooltip-icon">?</span>
+                <span class="tooltip-text">Intervalo de tiempo entre cada consulta automática a Binance P2P (de 5s a 3600s).</span>
+              </span>
+            </span>
             <input v-model.number="form.cronIntervalSec" class="search-input form-input" type="number" min="5" max="3600" required />
           </label>
 
           <label class="form-field">
-            <span>Retención de Snapshots (horas)</span>
+            <span>
+              Retención de Snapshots (horas)
+              <span class="tooltip-wrapper">
+                <span class="tooltip-icon">?</span>
+                <span class="tooltip-text">Tiempo en horas antes de purgar snapshots y liberar espacio en disco.</span>
+              </span>
+            </span>
             <input v-model.number="form.retentionHours" class="search-input form-input" type="number" min="1" max="720" required />
             <small>Horas antes de purgar registros viejos.</small>
           </label>
 
           <label class="form-field">
-            <span>Moneda Fiat</span>
+            <span>
+              Moneda Fiat
+              <span class="tooltip-wrapper">
+                <span class="tooltip-icon">?</span>
+                <span class="tooltip-text">Código ISO de la moneda local a consultar (ej. VES, COP, ARS, USD).</span>
+              </span>
+            </span>
             <input v-model="form.queryFilter.fiat" class="search-input form-input" type="text" placeholder="VES" />
           </label>
 
           <label class="form-field">
-            <span>Criptoactivo (Asset)</span>
+            <span>
+              Criptoactivo (Asset)
+              <span class="tooltip-wrapper">
+                <span class="tooltip-icon">?</span>
+                <span class="tooltip-text">Criptomoneda a monitorear (ej. USDT, BTC, ETH, FDUSD).</span>
+              </span>
+            </span>
             <input v-model="form.queryFilter.asset" class="search-input form-input" type="text" placeholder="USDT" />
           </label>
 
           <label class="form-field">
-            <span>Tipo de Operación</span>
+            <span>
+              Tipo de Operación
+              <span class="tooltip-wrapper">
+                <span class="tooltip-icon">?</span>
+                <span class="tooltip-text">BUY: Ofertas de venta (tú compras). SELL: Ofertas de compra (tú vendes).</span>
+              </span>
+            </span>
             <select v-model="form.queryFilter.tradeType" class="search-input form-input">
               <option value="BUY">BUY (Comprar)</option>
               <option value="SELL">SELL (Vender)</option>
@@ -46,8 +82,32 @@
           </label>
 
           <label class="form-field">
-            <span>Ofertas por Consulta</span>
+            <span>
+              Ofertas por Consulta
+              <span class="tooltip-wrapper">
+                <span class="tooltip-icon">?</span>
+                <span class="tooltip-text">Cantidad de ofertas a obtener en cada snapshot (1 a 100).</span>
+              </span>
+            </span>
             <input v-model.number="form.queryFilter.rows" class="search-input form-input" type="number" min="1" max="100" />
+          </label>
+
+          <label class="form-field">
+            <span>
+              Monto a comprar
+              <span class="tooltip-wrapper">
+                <span class="tooltip-icon">?</span>
+                <span class="tooltip-text">Monto exacto a comprar para pre‑filtrar anuncios que soporten esa operación en la moneda seleccionada (Fiat o Cripto).</span>
+              </span>
+            </span>
+            <div style="display: flex; gap: 6px;">
+              <input v-model.number="form.queryFilter.transAmount" class="search-input form-input" style="flex: 1;" type="number" min="0" placeholder="Ej. 5000" />
+              <select v-model="form.queryFilter.transAmountUnit" class="search-input form-input" style="width: 110px;">
+                <option value="FIAT">{{ form.queryFilter.fiat || 'VES' }} (Fiat)</option>
+                <option value="ASSET">{{ form.queryFilter.asset || 'USDT' }} (Asset)</option>
+              </select>
+            </div>
+            <small>Filtro enviado a Binance P2P API en la moneda elegida.</small>
           </label>
         </div>
 
@@ -117,6 +177,8 @@ const form = reactive({
     tradeType: props.monitor?.queryFilter?.tradeType || 'BUY',
     payTypes: [...(props.monitor?.queryFilter?.payTypes || [])],
     rows: props.monitor?.queryFilter?.rows || 20,
+    transAmount: props.monitor?.queryFilter?.transAmount ?? null,
+    transAmountUnit: props.monitor?.queryFilter?.transAmountUnit || 'FIAT',
   },
 });
 

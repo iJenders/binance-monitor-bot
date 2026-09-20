@@ -29,6 +29,8 @@ export class MonitorConfigService {
       tradeType?: 'BUY' | 'SELL';
       payTypes?: string[];
       rows?: number;
+      transAmount?: number | null;
+      transAmountUnit?: 'FIAT' | 'ASSET' | null;
     };
     retentionPolicy?: {
       retentionHours?: number;
@@ -43,6 +45,9 @@ export class MonitorConfigService {
     const retention = Math.max(1, Math.min(720, Number(dto.retentionPolicy?.retentionHours) || 48));
     const rows = Math.max(1, Math.min(100, Number(dto.queryFilter?.rows) || 20));
 
+    const parseOptNum = (val: any) =>
+      val !== undefined && val !== null && val !== '' && !isNaN(Number(val)) ? Number(val) : null;
+
     const newConfig: MonitorCronConfig = {
       id: randomUUID(),
       name: dto.name.trim(),
@@ -54,6 +59,8 @@ export class MonitorConfigService {
         tradeType: dto.queryFilter?.tradeType === 'SELL' ? 'SELL' : 'BUY',
         payTypes: Array.isArray(dto.queryFilter?.payTypes) ? dto.queryFilter.payTypes : [],
         rows,
+        transAmount: parseOptNum(dto.queryFilter?.transAmount),
+        transAmountUnit: dto.queryFilter?.transAmountUnit === 'ASSET' ? 'ASSET' : 'FIAT',
       },
       retentionPolicy: {
         retentionHours: retention,
@@ -93,6 +100,9 @@ export class MonitorConfigService {
       existing.cronIntervalMs = Math.max(5000, Math.min(3600000, Number(dto.cronIntervalMs) || 60000));
     }
 
+    const parseOptNum = (val: any) =>
+      val !== undefined && val !== null && val !== '' && !isNaN(Number(val)) ? Number(val) : null;
+
     if (dto.queryFilter) {
       existing.queryFilter = {
         fiat: (dto.queryFilter.fiat || existing.queryFilter.fiat).toUpperCase(),
@@ -100,6 +110,16 @@ export class MonitorConfigService {
         tradeType: dto.queryFilter.tradeType === 'SELL' ? 'SELL' : 'BUY',
         payTypes: Array.isArray(dto.queryFilter.payTypes) ? dto.queryFilter.payTypes : existing.queryFilter.payTypes,
         rows: Math.max(1, Math.min(100, Number(dto.queryFilter.rows) || existing.queryFilter.rows)),
+        transAmount:
+          dto.queryFilter.transAmount !== undefined
+            ? parseOptNum(dto.queryFilter.transAmount)
+            : existing.queryFilter.transAmount,
+        transAmountUnit:
+          dto.queryFilter.transAmountUnit !== undefined
+            ? dto.queryFilter.transAmountUnit === 'ASSET'
+              ? 'ASSET'
+              : 'FIAT'
+            : existing.queryFilter.transAmountUnit || 'FIAT',
       };
     }
 

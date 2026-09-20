@@ -10,8 +10,43 @@
             &nbsp;|&nbsp; Monitor: <strong>{{ snapshot?.monitorName }}</strong>
           </p>
         </div>
-        <button class="btn-tab" type="button" @click="$emit('close')">✕ Cerrar</button>
+        <div style="display: flex; gap: 8px; align-items: center; flex-shrink: 0;">
+          <!-- Delete button with two-step confirmation -->
+          <button
+            v-if="!deleteConfirming"
+            class="btn-danger"
+            type="button"
+            :disabled="deleting"
+            @click="deleteConfirming = true"
+          >
+            🗑 Eliminar
+          </button>
+          <template v-else>
+            <span style="font-size: 12px; color: var(--color-red); font-weight: 600; white-space: nowrap;">¿Confirmar?</span>
+            <button
+              class="btn-danger btn-danger--confirm"
+              type="button"
+              :disabled="deleting"
+              @click="confirmDelete"
+            >
+              {{ deleting ? 'Eliminando…' : 'Sí, eliminar' }}
+            </button>
+            <button
+              class="btn-tab"
+              type="button"
+              :disabled="deleting"
+              @click="deleteConfirming = false"
+            >
+              Cancelar
+            </button>
+          </template>
+          <button class="btn-tab" type="button" @click="$emit('close')">✕ Cerrar</button>
+        </div>
       </header>
+
+      <p v-if="deleteError" style="color: var(--color-red); font-size: 13px; padding: 0 0 8px;">
+        Error al eliminar: {{ deleteError }}
+      </p>
 
       <div class="audit-body">
         <!-- Status Banner -->
@@ -165,11 +200,15 @@ const props = defineProps<{
   snapshot: any;
 }>();
 
-defineEmits<{
+const emit = defineEmits<{
   close: [];
+  deleted: [snapshotId: string];
 }>();
 
 const offersSearch = ref('');
+const deleteConfirming = ref(false);
+const deleting = ref(false);
+const deleteError = ref<string | null>(null);
 
 const records = computed<any[]>(() => props.snapshot?.records || []);
 
@@ -184,6 +223,29 @@ const filteredRecords = computed(() => {
     return nick.includes(q) || methods.includes(q);
   });
 });
+
+const confirmDelete = async () => {
+  if (!props.snapshot?.id || !props.snapshot?.monitorId) return;
+  deleting.value = true;
+  deleteError.value = null;
+  try {
+    const res = await fetch(
+      `/api/v1/monitors/${props.snapshot.monitorId}/snapshots/${props.snapshot.id}`,
+      { method: 'DELETE' },
+    );
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => null);
+      throw new Error(errJson?.message || `Error ${res.status}`);
+    }
+    emit('deleted', props.snapshot.id);
+    emit('close');
+  } catch (err: any) {
+    deleteError.value = err.message || 'Error desconocido.';
+    deleteConfirming.value = false;
+  } finally {
+    deleting.value = false;
+  }
+};
 </script>
 
 <style scoped>
@@ -254,5 +316,43 @@ const filteredRecords = computed(() => {
   color: var(--text-primary);
   font-size: 11px;
   word-break: break-all;
+}
+
+/* Delete button */
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid rgba(246, 70, 93, 0.5);
+  background: rgba(246, 70, 93, 0.1);
+  color: var(--color-red);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: rgba(246, 70, 93, 0.2);
+  border-color: var(--color-red);
+}
+
+.btn-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-danger--confirm {
+  background: rgba(246, 70, 93, 0.25);
+  border-color: var(--color-red);
+  animation: pulse-red 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-red {
+  from { box-shadow: 0 0 0 0 rgba(246, 70, 93, 0); }
+  to   { box-shadow: 0 0 0 4px rgba(246, 70, 93, 0.2); }
 }
 </style>

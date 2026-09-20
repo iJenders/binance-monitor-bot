@@ -83,4 +83,8 @@ export class MonitorHistoryService {
       snapshots,
     };
   }
+
+  public async deleteSnapshot(monitorId: string, snapshotId: string): Promise<boolean> {
+    return this.snapshotRepositoryPort.deleteSnapshot(monitorId, snapshotId);
+  }
 }

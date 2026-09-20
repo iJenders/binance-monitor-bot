@@ -587,3 +587,94 @@ body {
   font-size: 13px;
   line-height: 32px;
 }
+
+/* Tooltip Component Styles */
+.tooltip-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.tooltip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: help;
+  margin-left: 4px;
+  transition: var(--transition);
+}
+
+.tooltip-icon:hover {
+  background-color: var(--accent-binance);
+  color: #000;
+  border-color: var(--accent-binance);
+}
+
+.tooltip-text {
+  visibility: hidden;
+  opacity: 0;
+  width: 230px;
+  background-color: #1e2329;
+  color: var(--text-primary);
+  text-align: left;
+  border-radius: 6px;
+  padding: 8px 12px;
+  position: absolute;
+  z-index: 1000;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--border-color);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.4;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  pointer-events: none;
+  white-space: normal;
+}
+
+.tooltip-text::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: var(--border-color) transparent transparent transparent;
+}
+
+.tooltip-wrapper:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Help Button in Header */
+.btn-help {
+  background: rgba(240, 185, 11, 0.12);
+  color: var(--accent-binance);
+  border: 1px solid rgba(240, 185, 11, 0.3);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: var(--transition);
+}
+
+.btn-help:hover {
+  background: var(--accent-binance);
+  color: #000;
+}

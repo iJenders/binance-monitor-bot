@@ -30,6 +30,16 @@
             📊 Monitoreo & Gráficas
           </button>
         </div>
+
+        <button
+          class="btn-help"
+          type="button"
+          @click="showTutorialModal = true"
+          title="Abrir Tutorial y Guía del Usuario"
+        >
+          <HelpCircleIcon :size="16" />
+          <span>Tutorial</span>
+        </button>
       </div>
     </header>
 
@@ -72,17 +82,35 @@
           <!-- Live Filters Bar -->
           <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; background: var(--bg-tertiary); padding: 12px; border-radius: 6px;">
             <div style="display: flex; align-items: center; gap: 6px;">
-              <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">Fiat:</span>
+              <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">
+                Fiat:
+                <span class="tooltip-wrapper">
+                  <span class="tooltip-icon">?</span>
+                  <span class="tooltip-text">Moneda local Fiat a consultar (ej. VES, COP, ARS).</span>
+                </span>
+              </span>
               <input v-model="liveFilters.fiat" class="search-input" style="width: 80px;" type="text" />
             </div>
 
             <div style="display: flex; align-items: center; gap: 6px;">
-              <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">Asset:</span>
+              <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">
+                Asset:
+                <span class="tooltip-wrapper">
+                  <span class="tooltip-icon">?</span>
+                  <span class="tooltip-text">Criptoactivo P2P (ej. USDT, BTC, ETH).</span>
+                </span>
+              </span>
               <input v-model="liveFilters.asset" class="search-input" style="width: 80px;" type="text" />
             </div>
 
             <div style="display: flex; align-items: center; gap: 6px;">
-              <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">Operación:</span>
+              <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">
+                Operación:
+                <span class="tooltip-wrapper">
+                  <span class="tooltip-icon">?</span>
+                  <span class="tooltip-text">BUY (comprar a vendedores) o SELL (vender a compradores).</span>
+                </span>
+              </span>
               <select v-model="liveFilters.tradeType" class="search-input" style="width: 100px;">
                 <option value="BUY">BUY</option>
                 <option value="SELL">SELL</option>
@@ -90,12 +118,39 @@
             </div>
 
             <div style="display: flex; align-items: center; gap: 6px;">
-              <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">Filas:</span>
+              <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">
+                Filas:
+                <span class="tooltip-wrapper">
+                  <span class="tooltip-icon">?</span>
+                  <span class="tooltip-text">Número de ofertas a recuperar por consulta.</span>
+                </span>
+              </span>
               <input v-model.number="liveFilters.rows" class="search-input" style="width: 70px;" type="number" min="1" max="100" />
             </div>
 
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">
+                Monto a comprar:
+                <span class="tooltip-wrapper">
+                  <span class="tooltip-icon">?</span>
+                  <span class="tooltip-text">Monto exacto a comprar enviado a Binance P2P para pre-filtrar anuncios que soporten la operación en la moneda seleccionada (Fiat o Cripto).</span>
+                </span>
+              </span>
+              <input v-model.number="liveFilters.transAmount" class="search-input" style="width: 85px;" type="number" placeholder="Ej. 5000" />
+              <select v-model="liveFilters.transAmountUnit" class="search-input" style="width: 75px;">
+                <option value="FIAT">{{ liveFilters.fiat || 'VES' }}</option>
+                <option value="ASSET">{{ liveFilters.asset || 'USDT' }}</option>
+              </select>
+            </div>
+
             <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px; flex: 1;">
-              <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">Bancos:</span>
+              <span style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">
+                Bancos:
+                <span class="tooltip-wrapper">
+                  <span class="tooltip-icon">?</span>
+                  <span class="tooltip-text">Métodos de pago aceptados en la oferta.</span>
+                </span>
+              </span>
               <button
                 v-for="b in livePayTypesCatalog"
                 :key="b.id"
@@ -313,7 +368,7 @@
               </div>
             </div>
             <div class="chart-wrapper">
-              <canvas ref="chartCanvas"></canvas>
+              <canvas ref="chartCanvas" style="cursor: pointer;" title="Haz click en un punto para ver el snapshot"></canvas>
             </div>
           </section>
 
@@ -387,7 +442,7 @@
                       Ofertas
                       <span v-if="snapshotSortField === 'offers'">{{ snapshotSortOrder === 'asc' ? '▲' : '▼' }}</span>
                     </th>
-                    <th>Auditoría</th>
+                    <th>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -416,9 +471,19 @@
                     <td style="white-space: nowrap;">{{ snap.executionDurationMs }} ms</td>
                     <td><strong style="color: var(--accent-binance);">{{ snap.records?.length || 0 }}</strong></td>
                     <td>
-                      <button class="btn-tab" style="padding: 4px 8px; font-size: 12px;" @click="inspectAuditSnapshot(snap)">
-                        🔍 Ver Auditoría
-                      </button>
+                      <div style="display: flex; gap: 6px;">
+                        <button class="btn-tab" style="padding: 4px 8px; font-size: 12px;" @click="inspectAuditSnapshot(snap)">
+                          🔍 Ver
+                        </button>
+                        <button
+                          class="btn-tab"
+                          style="padding: 4px 8px; font-size: 12px; color: var(--color-red); border-color: rgba(246,70,93,0.4);"
+                          :title="'Eliminar snapshot ' + snap.id.substring(0,8)"
+                          @click="deleteSnapshotInline(snap)"
+                        >
+                          🗑
+                        </button>
+                      </div>
                     </td>
                   </tr>
                   <tr v-if="sortedSnapshots.length === 0">
@@ -480,15 +545,22 @@
       v-if="selectedAuditSnapshot"
       :snapshot="selectedAuditSnapshot"
       @close="selectedAuditSnapshot = null"
+      @deleted="onSnapshotDeleted"
+    />
+
+    <TutorialModal
+      v-if="showTutorialModal"
+      @close="showTutorialModal = false"
     />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
-import { RefreshCw as RefreshCwIcon } from 'lucide-vue-next';
+import { RefreshCw as RefreshCwIcon, HelpCircle as HelpCircleIcon } from 'lucide-vue-next';
 import MonitorModal from './components/MonitorModal.vue';
 import AuditDetailModal from './components/AuditDetailModal.vue';
+import TutorialModal from './components/TutorialModal.vue';
 import {
   Chart,
   LineController,
@@ -513,6 +585,7 @@ Chart.register(
 );
 
 const currentTab = ref<'live' | 'monitoring'>('live');
+const showTutorialModal = ref(false);
 
 // -----------------------------------------------------------------
 // TAB 1: LIVE OFFERS (MODULE 2)
@@ -539,6 +612,8 @@ const liveFilters = ref({
   tradeType: 'BUY',
   rows: 20,
   payTypes: ['Banesco', 'PagoMovil'] as string[],
+  transAmount: null as number | null,
+  transAmountUnit: 'FIAT' as 'FIAT' | 'ASSET',
 });
 
 const toggleLivePayType = (id: string) => {
@@ -561,6 +636,10 @@ const fetchLiveOffers = async () => {
     params.set('rows', String(liveFilters.value.rows));
     if (liveFilters.value.payTypes.length) {
       params.set('payTypes', liveFilters.value.payTypes.join(','));
+    }
+    if (liveFilters.value.transAmount) {
+      params.set('transAmount', String(liveFilters.value.transAmount));
+      params.set('transAmountUnit', liveFilters.value.transAmountUnit);
     }
 
     const res = await fetch(`/api/v1/live-offers?${params.toString()}`);
@@ -820,6 +899,30 @@ const inspectAuditSnapshot = (snap: any) => {
   selectedAuditSnapshot.value = snap;
 };
 
+const onSnapshotDeleted = (snapshotId: string) => {
+  const idx = monitorSnapshots.value.findIndex((s: any) => s.id === snapshotId);
+  if (idx !== -1) {
+    monitorSnapshots.value.splice(idx, 1);
+    nextTick(() => renderChart());
+  }
+  selectedAuditSnapshot.value = null;
+};
+
+const deleteSnapshotInline = async (snap: any) => {
+  if (!confirm(`¿Eliminar el snapshot ${snap.id.substring(0, 8)}…?\nEsta acción no se puede deshacer.`)) return;
+  try {
+    const res = await fetch(`/api/v1/monitors/${snap.monitorId}/snapshots/${snap.id}`, { method: 'DELETE' });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      alert(`Error al eliminar: ${err?.message || res.status}`);
+      return;
+    }
+    onSnapshotDeleted(snap.id);
+  } catch (e: any) {
+    alert(`Error de red: ${e.message}`);
+  }
+};
+
 const renderChart = () => {
   if (!chartCanvas.value) return;
 
@@ -864,7 +967,8 @@ const renderChart = () => {
           backgroundColor: 'rgba(14, 203, 129, 0.08)',
           tension: 0.3,
           fill: '+2',
-          pointRadius: 3,
+          pointRadius: 4,
+          pointHoverRadius: 8,
         },
         {
           label: 'Precio Promedio (Bs)',
@@ -873,7 +977,8 @@ const renderChart = () => {
           backgroundColor: 'transparent',
           borderDash: [5, 5],
           tension: 0.3,
-          pointRadius: 3,
+          pointRadius: 4,
+          pointHoverRadius: 8,
         },
         {
           label: 'Precio Máximo (Bs)',
@@ -882,7 +987,8 @@ const renderChart = () => {
           backgroundColor: 'rgba(246, 70, 93, 0.06)',
           tension: 0.3,
           fill: false,
-          pointRadius: 3,
+          pointRadius: 4,
+          pointHoverRadius: 8,
         },
       ],
     },
@@ -890,6 +996,15 @@ const renderChart = () => {
       responsive: true,
       maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
+      onClick: (_event: any, elements: any[]) => {
+        if (elements.length > 0) {
+          const dataIndex = elements[0].index;
+          const snap = monitorSnapshots.value[dataIndex];
+          if (snap) {
+            selectedAuditSnapshot.value = snap;
+          }
+        }
+      },
       scales: {
         x: { grid: { color: '#2b313a' }, ticks: { color: '#848e9c', maxRotation: 45 } },
         y: {

@@ -113,4 +113,39 @@ export class FileAuditSnapshotRepositoryAdapter implements AuditSnapshotReposito
       // Ignorar si no existe
     }
   }
+
+  public async deleteSnapshot(monitorId: string, snapshotId: string): Promise<boolean> {
+    const filePath = this.getFilePath(monitorId);
+    try {
+      const content = await fs.readFile(filePath, 'utf-8');
+      const lines = content.split('\n').filter((l) => l.trim().length > 0);
+      let found = false;
+      const kept: string[] = [];
+
+      for (const line of lines) {
+        try {
+          const parsed = JSON.parse(line) as AuditSnapshot;
+          if (parsed.id === snapshotId) {
+            found = true;
+          } else {
+            kept.push(line);
+          }
+        } catch {
+          kept.push(line);
+        }
+      }
+
+      if (found) {
+        const nextContent = kept.length > 0 ? kept.join('\n') + '\n' : '';
+        await fs.writeFile(filePath, nextContent, 'utf-8');
+        this.logger.log(`Snapshot [ID: ${snapshotId}] eliminado del monitor ${monitorId}.`);
+      }
+
+      return found;
+    } catch (err: any) {
+      if (err.code === 'ENOENT') return false;
+      this.logger.error(`Error al eliminar snapshot ${snapshotId}: ${err}`);
+      return false;
+    }
+  }
 }

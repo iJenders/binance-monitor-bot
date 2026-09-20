@@ -53,4 +53,36 @@ describe('MonitorConfigService', () => {
     expect(created.queryFilter.payTypes).toContain('Provincial');
     expect(savedConfig).not.toBeNull();
   });
+
+  it('debe crear y actualizar monitor con filtro transAmount', async () => {
+    let savedConfig: MonitorCronConfig | null = null;
+    const mockRepo: MonitorConfigRepositoryPort = {
+      findAll: vi.fn().mockResolvedValue([]),
+      findById: vi.fn().mockImplementation(async (id) => savedConfig),
+      save: vi.fn().mockImplementation(async (cfg) => {
+        savedConfig = cfg;
+      }),
+      delete: vi.fn(),
+    };
+
+    const service = new MonitorConfigService(mockRepo);
+    const created = await service.createMonitor({
+      name: 'Monitor Con Filtro Monto API',
+      cronIntervalMs: 15000,
+      queryFilter: {
+        payTypes: ['Banesco'],
+        transAmount: 5000,
+      },
+    });
+
+    expect(created.queryFilter.transAmount).toBe(5000);
+
+    const updated = await service.updateMonitor(created.id, {
+      queryFilter: {
+        transAmount: 10000,
+      },
+    });
+
+    expect(updated.queryFilter.transAmount).toBe(10000);
+  });
 });

@@ -21,14 +21,15 @@ export class BinanceP2pAdapter implements BinanceP2pPort {
     const binanceUrl = 'https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search';
     let lastPayloadSent: any = null;
 
-    while (collected.length < totalWanted) {
-      const remaining = totalWanted - collected.length;
-      const rows = Math.min(BINANCE_PAGE_SIZE, remaining);
+    const MAX_PAGES = 5;
+    const isAssetUnit = queryFilter.transAmountUnit === 'ASSET';
+    let referencePrice: number | null = null;
 
-      const body = {
+    while (collected.length < totalWanted && page <= MAX_PAGES) {
+      const body: any = {
         fiat,
         page,
-        rows,
+        rows: BINANCE_PAGE_SIZE,
         tradeType,
         asset,
         countries: [],
@@ -43,6 +44,14 @@ export class BinanceP2pAdapter implements BinanceP2pPort {
         tradedWith: false,
         followed: false,
       };
+
+      if (queryFilter.transAmount != null && queryFilter.transAmount > 0) {
+        if (!isAssetUnit) {
+          body.transAmount = String(queryFilter.transAmount);
+        } else if (referencePrice != null && referencePrice > 0) {
+          body.transAmount = String(Math.round(queryFilter.transAmount * referencePrice));
+        }
+      }
 
       lastPayloadSent = body;
 
@@ -69,9 +78,31 @@ export class BinanceP2pAdapter implements BinanceP2pPort {
           break;
         }
 
-        collected.push(...pageData);
+        if (referencePrice === null && pageData.length > 0 && pageData[0].adv?.price) {
+          referencePrice = parseFloat(pageData[0].adv.price);
+        }
 
-        if (pageData.length < rows) {
+        const validPageItems =
+          isAssetUnit && queryFilter.transAmount != null && queryFilter.transAmount > 0
+            ? pageData.filter((item) => {
+                const minQty = item.adv?.minSingleTransQuantity ? parseFloat(item.adv.minSingleTransQuantity) : null;
+                const maxQty = item.adv?.dynamicMaxSingleTransQuantity
+                  ? parseFloat(item.adv.dynamicMaxSingleTransQuantity)
+                  : item.adv?.maxSingleTransQuantity
+                  ? parseFloat(item.adv.maxSingleTransQuantity)
+                  : item.adv?.surplusAmount
+                  ? parseFloat(item.adv.surplusAmount)
+                  : null;
+
+                if (minQty !== null && minQty > queryFilter.transAmount!) return false;
+                if (maxQty !== null && maxQty < queryFilter.transAmount!) return false;
+                return true;
+              })
+            : pageData;
+
+        collected.push(...validPageItems);
+
+        if (pageData.length < BINANCE_PAGE_SIZE) {
           break;
         }
 

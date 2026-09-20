@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, NotFoundException, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { MonitorConfigService } from '../services/monitor-config.service.js';
 import { MonitorSchedulerService } from '../services/monitor-scheduler.service.js';
@@ -75,5 +75,18 @@ export class MonitorController {
     const hours = hoursRaw ? parseFloat(hoursRaw) : 24;
     const history = await this.monitorHistoryService.getHistoryByMonitor(id, hours, from, to);
     return { success: true, data: history };
+  }
+
+  @Delete(':monitorId/snapshots/:snapshotId')
+  @ApiOperation({ summary: 'Eliminar un snapshot individual del historial de un monitor' })
+  async deleteSnapshot(
+    @Param('monitorId') monitorId: string,
+    @Param('snapshotId') snapshotId: string,
+  ) {
+    const deleted = await this.monitorHistoryService.deleteSnapshot(monitorId, snapshotId);
+    if (!deleted) {
+      throw new NotFoundException(`Snapshot '${snapshotId}' no encontrado en el monitor '${monitorId}'.`);
+    }
+    return { success: true, deleted: true };
   }
 }
