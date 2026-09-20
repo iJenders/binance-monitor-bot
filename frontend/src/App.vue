@@ -377,6 +377,36 @@
             </div>
 
             <div class="metric-card">
+              <span class="metric-label">Mediana (P50)</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                <div>
+                  <div style="font-size: 11px; color: var(--text-secondary);">Instante Actual</div>
+                  <div class="metric-value highlight-blue" style="font-size: 18px;">Bs. {{ formatNumber(monitorMetrics.currentMedianPrice) }}</div>
+                </div>
+                <div style="text-align: right;">
+                  <div style="font-size: 11px; color: var(--text-secondary);">Período (Histórico)</div>
+                  <div class="metric-value" style="font-size: 14px; opacity: 0.8;">Bs. {{ formatNumber(monitorMetrics.historicalMedianPrice) }}</div>
+                </div>
+              </div>
+              <span class="metric-sub">Diferencial (Spread): Bs. {{ formatNumber(monitorMetrics.currentMaxPrice - monitorMetrics.currentMinPrice) }}</span>
+            </div>
+
+            <div class="metric-card">
+              <span class="metric-label">Liquidez / Vol. Disponible</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                <div>
+                  <div style="font-size: 11px; color: var(--text-secondary);">Instante Actual</div>
+                  <div class="metric-value" style="font-size: 18px;">{{ formatNumber(monitorMetrics.currentTotalLiquidity) }}</div>
+                </div>
+                <div style="text-align: right;">
+                  <div style="font-size: 11px; color: var(--text-secondary);">Anunciantes Únicos</div>
+                  <div class="metric-value highlight-gold" style="font-size: 14px; opacity: 0.8;">{{ monitorMetrics.currentUniqueAdvertisers }} / {{ monitorMetrics.historicalUniqueAdvertisers }} (Histórico)</div>
+                </div>
+              </div>
+              <span class="metric-sub">Volumen base sumando cantidad disponible de las ofertas</span>
+            </div>
+
+            <div class="metric-card">
               <span class="metric-label">Snapshots / Auditoría</span>
               <span class="metric-value">{{ monitorSnapshots.length }} <span style="font-size: 14px; color: var(--text-secondary)">snapshots</span></span>
               <span class="metric-sub">Frecuencia: {{ selectedMonitor.cronIntervalMs / 1000 }}s | Retención: {{ selectedMonitor.retentionPolicy?.retentionHours }}h</span>
@@ -715,9 +745,21 @@ const monitorMetrics = ref({
   historicalMinPrice: 0,
   historicalAvgPrice: 0,
   historicalMaxPrice: 0,
+  historicalMedianPrice: 0,
+  historicalP25Price: 0,
+  historicalP75Price: 0,
+  historicalStdDevPrice: 0,
+  historicalUniqueAdvertisers: 0,
+  historicalTotalLiquidity: 0,
   currentMinPrice: 0,
   currentAvgPrice: 0,
   currentMaxPrice: 0,
+  currentMedianPrice: 0,
+  currentP25Price: 0,
+  currentP75Price: 0,
+  currentStdDevPrice: 0,
+  currentUniqueAdvertisers: 0,
+  currentTotalLiquidity: 0,
   offerCount: 0,
   promotedCount: 0,
 });
@@ -849,9 +891,21 @@ const fetchMonitorHistory = async () => {
       historicalMinPrice: 0,
       historicalAvgPrice: 0,
       historicalMaxPrice: 0,
+      historicalMedianPrice: 0,
+      historicalP25Price: 0,
+      historicalP75Price: 0,
+      historicalStdDevPrice: 0,
+      historicalUniqueAdvertisers: 0,
+      historicalTotalLiquidity: 0,
       currentMinPrice: 0,
       currentAvgPrice: 0,
       currentMaxPrice: 0,
+      currentMedianPrice: 0,
+      currentP25Price: 0,
+      currentP75Price: 0,
+      currentStdDevPrice: 0,
+      currentUniqueAdvertisers: 0,
+      currentTotalLiquidity: 0,
       offerCount: 0,
       promotedCount: 0,
     };
