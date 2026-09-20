@@ -6,7 +6,7 @@ import { VES_PAY_TYPES } from '../domain/ves-pay-types.js';
 
 @Injectable()
 export class MonitorConfigService {
-  constructor(private readonly repositoryPort: MonitorConfigRepositoryPort) {}
+  constructor(private readonly repositoryPort: MonitorConfigRepositoryPort) { }
 
   public async getAllMonitors(): Promise<MonitorCronConfig[]> {
     return this.repositoryPort.findAll();

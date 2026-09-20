@@ -326,16 +326,40 @@
                   Cada rutina guarda el resultado y traza completa de las peticiones HTTP realizadas
                 </p>
               </div>
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <span style="font-size: 12px; color: var(--text-secondary);">Filas por página:</span>
-                <div class="btn-group">
-                  <button
-                    v-for="size in [10, 25, 50]"
-                    :key="size"
-                    class="btn-tab"
-                    :class="{ active: snapshotPageSize === size }"
-                    @click="setPageSize(size)"
-                  >{{ size }}</button>
+              <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 12px; color: var(--text-secondary);">Orden:</span>
+                  <div class="btn-group">
+                    <button
+                      class="btn-tab"
+                      :class="{ active: snapshotSortOrder === 'desc' }"
+                      @click="snapshotSortOrder = 'desc'"
+                      title="Más recientes primero"
+                    >
+                      Descendente ⬇
+                    </button>
+                    <button
+                      class="btn-tab"
+                      :class="{ active: snapshotSortOrder === 'asc' }"
+                      @click="snapshotSortOrder = 'asc'"
+                      title="Más antiguos primero"
+                    >
+                      Ascendente ⬆
+                    </button>
+                  </div>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 12px; color: var(--text-secondary);">Filas por página:</span>
+                  <div class="btn-group">
+                    <button
+                      v-for="size in [10, 25, 50]"
+                      :key="size"
+                      class="btn-tab"
+                      :class="{ active: snapshotPageSize === size }"
+                      @click="setPageSize(size)"
+                    >{{ size }}</button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -346,11 +370,23 @@
                   <tr>
                     <th>#</th>
                     <th>ID Snapshot</th>
-                    <th>Fecha / Hora</th>
+                    <th style="cursor: pointer; user-select: none;" @click="toggleSort('timestamp')" title="Ordenar por fecha">
+                      Fecha / Hora
+                      <span v-if="snapshotSortField === 'timestamp'">{{ snapshotSortOrder === 'asc' ? '▲' : '▼' }}</span>
+                    </th>
                     <th>Estado Petición</th>
-                    <th>Código HTTP</th>
-                    <th>Duración</th>
-                    <th>Ofertas</th>
+                    <th style="cursor: pointer; user-select: none;" @click="toggleSort('httpStatus')" title="Ordenar por código HTTP">
+                      Código HTTP
+                      <span v-if="snapshotSortField === 'httpStatus'">{{ snapshotSortOrder === 'asc' ? '▲' : '▼' }}</span>
+                    </th>
+                    <th style="cursor: pointer; user-select: none;" @click="toggleSort('executionDurationMs')" title="Ordenar por duración">
+                      Duración
+                      <span v-if="snapshotSortField === 'executionDurationMs'">{{ snapshotSortOrder === 'asc' ? '▲' : '▼' }}</span>
+                    </th>
+                    <th style="cursor: pointer; user-select: none;" @click="toggleSort('offers')" title="Ordenar por ofertas">
+                      Ofertas
+                      <span v-if="snapshotSortField === 'offers'">{{ snapshotSortOrder === 'asc' ? '▲' : '▼' }}</span>
+                    </th>
                     <th>Auditoría</th>
                   </tr>
                 </thead>
@@ -385,7 +421,7 @@
                       </button>
                     </td>
                   </tr>
-                  <tr v-if="monitorSnapshots.length === 0">
+                  <tr v-if="sortedSnapshots.length === 0">
                     <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 32px;">
                       No hay snapshots almacenados para este monitor en las últimas {{ periodHours }} horas.
                     </td>
@@ -397,8 +433,8 @@
             <!-- Pagination Controls -->
             <div v-if="snapshotTotalPages > 1" class="pagination-bar">
               <span class="pagination-info">
-                Mostrando {{ (snapshotPage - 1) * snapshotPageSize + 1 }}–{{ Math.min(snapshotPage * snapshotPageSize, monitorSnapshots.length) }}
-                de <strong>{{ monitorSnapshots.length }}</strong> snapshots
+                Mostrando {{ (snapshotPage - 1) * snapshotPageSize + 1 }}–{{ Math.min(snapshotPage * snapshotPageSize, sortedSnapshots.length) }}
+                de <strong>{{ sortedSnapshots.length }}</strong> snapshots
               </span>
 
               <div class="pagination-controls">
@@ -569,7 +605,7 @@ const monitoringLoading = ref(false);
 const monitorSnapshots = ref<any[]>([]);
 const monitorMetrics = ref({ minPrice: 0, avgPrice: 0, maxPrice: 0, latestPrice: 0, offerCount: 0 });
 const monitorAutoRefreshSeconds = ref(0);
-const autoRefreshMode = ref<'off' | 'auto' | 'custom'>('off');
+const autoRefreshMode = ref<'off' | 'auto' | 'custom'>('auto');
 const customRefreshSeconds = ref(30);
 let monitorAutoRefreshTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -577,17 +613,51 @@ const showMonitorModal = ref(false);
 const editingMonitor = ref<any>(null);
 const selectedAuditSnapshot = ref<any>(null);
 
-// Pagination state for snapshots table
+// Sorting and Pagination state for snapshots table
 const snapshotPage = ref(1);
 const snapshotPageSize = ref(10);
+const snapshotSortField = ref<'timestamp' | 'executionDurationMs' | 'offers' | 'httpStatus'>('timestamp');
+const snapshotSortOrder = ref<'asc' | 'desc'>('desc');
+
+const toggleSort = (field: 'timestamp' | 'executionDurationMs' | 'offers' | 'httpStatus') => {
+  if (snapshotSortField.value === field) {
+    snapshotSortOrder.value = snapshotSortOrder.value === 'desc' ? 'asc' : 'desc';
+  } else {
+    snapshotSortField.value = field;
+    snapshotSortOrder.value = 'desc';
+  }
+};
+
+const sortedSnapshots = computed(() => {
+  const list = [...monitorSnapshots.value];
+  const factor = snapshotSortOrder.value === 'asc' ? 1 : -1;
+  return list.sort((a, b) => {
+    let valA = 0;
+    let valB = 0;
+    if (snapshotSortField.value === 'timestamp') {
+      valA = new Date(a.timestamp).getTime();
+      valB = new Date(b.timestamp).getTime();
+    } else if (snapshotSortField.value === 'executionDurationMs') {
+      valA = a.executionDurationMs || 0;
+      valB = b.executionDurationMs || 0;
+    } else if (snapshotSortField.value === 'offers') {
+      valA = a.records?.length || 0;
+      valB = b.records?.length || 0;
+    } else if (snapshotSortField.value === 'httpStatus') {
+      valA = a.auditTrail?.httpStatus || 200;
+      valB = b.auditTrail?.httpStatus || 200;
+    }
+    return (valA - valB) * factor;
+  });
+});
 
 const snapshotTotalPages = computed(() =>
-  Math.max(1, Math.ceil(monitorSnapshots.value.length / snapshotPageSize.value)),
+  Math.max(1, Math.ceil(sortedSnapshots.value.length / snapshotPageSize.value)),
 );
 
 const paginatedSnapshots = computed(() => {
   const start = (snapshotPage.value - 1) * snapshotPageSize.value;
-  return monitorSnapshots.value.slice(start, start + snapshotPageSize.value);
+  return sortedSnapshots.value.slice(start, start + snapshotPageSize.value);
 });
 
 // Show at most 7 page buttons with ellipsis
@@ -632,6 +702,9 @@ const fetchMonitors = async () => {
     if (monitorsList.value.length > 0 && !selectedMonitorId.value) {
       selectedMonitorId.value = monitorsList.value[0].id;
     }
+    if (autoRefreshMode.value !== 'off') {
+      setAutoRefreshMode(autoRefreshMode.value);
+    }
   } catch (err) {
     console.error('Error al cargar monitores:', err);
   }
@@ -641,6 +714,9 @@ const selectMonitor = (id: string) => {
   selectedMonitorId.value = id;
   snapshotPage.value = 1;
   fetchMonitorHistory();
+  if (autoRefreshMode.value !== 'off') {
+    setAutoRefreshMode(autoRefreshMode.value);
+  }
 };
 
 const fetchMonitorHistory = async () => {
@@ -827,13 +903,20 @@ const renderChart = () => {
       plugins: {
         legend: { labels: { color: '#eaecef', boxWidth: 12 } },
         tooltip: {
-          backgroundColor: '#1e2329',
+          backgroundColor: '#181a20',
           borderColor: '#2b313a',
           borderWidth: 1,
-          titleColor: '#eaecef',
-          bodyColor: '#848e9c',
+          padding: 12,
+          boxPadding: 6,
+          usePointStyle: true,
+          titleColor: '#848e9c',
+          titleFont: { size: 11, weight: 'normal' },
+          titleMarginBottom: 8,
+          bodyFont: { size: 14, weight: 'bold' },
+          bodySpacing: 6,
           callbacks: {
             label: (ctx: any) => ` ${ctx.dataset.label}: Bs. ${Number(ctx.parsed.y).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+            labelTextColor: (ctx: any) => ctx.dataset.borderColor || '#ffffff',
           },
         },
       },
