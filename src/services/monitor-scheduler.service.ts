@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { MonitorConfigService } from './monitor-config.service.js';
 import { BinanceP2pPort } from '../ports/binance-p2p.port.js';
@@ -20,7 +25,9 @@ export class MonitorSchedulerService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit() {
-    this.logger.log('Inicializando programador dinámico de Crons de Monitoreo.');
+    this.logger.log(
+      'Inicializando programador dinámico de Crons de Monitoreo.',
+    );
     // Check every 1 second for due monitor tasks
     this.syncTimerHandle = setInterval(() => {
       void this.checkAndRunMonitors();
@@ -58,9 +65,13 @@ export class MonitorSchedulerService implements OnModuleInit, OnModuleDestroy {
     return this.executeMonitorTick(monitor);
   }
 
-  public async executeMonitorTick(monitor: MonitorCronConfig): Promise<AuditSnapshot> {
+  public async executeMonitorTick(
+    monitor: MonitorCronConfig,
+  ): Promise<AuditSnapshot> {
     if (this.runningTasks.has(monitor.id)) {
-      this.logger.warn(`El monitor '${monitor.name}' [${monitor.id}] ya tiene una tarea en ejecución.`);
+      this.logger.warn(
+        `El monitor '${monitor.name}' [${monitor.id}] ya tiene una tarea en ejecución.`,
+      );
       throw new Error(`Monitor ${monitor.id} ya se encuentra en ejecución.`);
     }
 
@@ -73,7 +84,9 @@ export class MonitorSchedulerService implements OnModuleInit, OnModuleDestroy {
         `Ejecutando Cron Monitor '${monitor.name}' [${monitor.id}]: asset=${monitor.queryFilter.asset}, fiat=${monitor.queryFilter.fiat}, payTypes=${monitor.queryFilter.payTypes.join(',') || 'todos'}`,
       );
 
-      const fetchResult = await this.binanceP2pPort.getBinanceOffers(monitor.queryFilter);
+      const fetchResult = await this.binanceP2pPort.getBinanceOffers(
+        monitor.queryFilter,
+      );
 
       snapshot = {
         id: randomUUID(),
@@ -90,17 +103,26 @@ export class MonitorSchedulerService implements OnModuleInit, OnModuleDestroy {
 
       // Purge old snapshots for this monitor if retention policy configured
       if (monitor.retentionPolicy.retentionHours > 0) {
-        const cutoff = new Date(Date.now() - monitor.retentionPolicy.retentionHours * 60 * 60 * 1000);
-        const removed = await this.snapshotRepositoryPort.purgeOlderThan(monitor.id, cutoff);
+        const cutoff = new Date(
+          Date.now() - monitor.retentionPolicy.retentionHours * 60 * 60 * 1000,
+        );
+        const removed = await this.snapshotRepositoryPort.purgeOlderThan(
+          monitor.id,
+          cutoff,
+        );
         if (removed > 0) {
-          this.logger.log(`Depurados ${removed} snapshots antiguos para monitor '${monitor.name}'.`);
+          this.logger.log(
+            `Depurados ${removed} snapshots antiguos para monitor '${monitor.name}'.`,
+          );
         }
       }
 
       return snapshot;
     } catch (error: any) {
       const duration = Date.now() - startTime;
-      this.logger.error(`Fallo en ejecución de Monitor '${monitor.name}': ${error.message || error}`);
+      this.logger.error(
+        `Fallo en ejecución de Monitor '${monitor.name}': ${error.message || error}`,
+      );
 
       snapshot = {
         id: randomUUID(),
@@ -111,9 +133,12 @@ export class MonitorSchedulerService implements OnModuleInit, OnModuleDestroy {
         status: 'FAILURE',
         errorMessage: error.message || String(error),
         auditTrail: {
-          requestUrl: 'https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search',
+          requestUrl:
+            'https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search',
           requestPayload: { ...monitor.queryFilter, page: 1 },
-          httpStatus: error.message?.includes('HTTP') ? parseInt(error.message.replace(/\D/g, ''), 10) || 500 : 500,
+          httpStatus: error.message?.includes('HTTP')
+            ? parseInt(error.message.replace(/\D/g, ''), 10) || 500
+            : 500,
           recordsCount: 0,
         },
         records: [],

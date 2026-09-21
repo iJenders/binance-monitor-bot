@@ -56,7 +56,8 @@ export class MonitorMetrics {
 
     // Ordenar cronológicamente para identificar el snapshot más reciente
     const sorted = [...snapshots].sort(
-      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+      (a, b) =>
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
     );
     const latestSnapshot = sorted[sorted.length - 1];
 
@@ -99,11 +100,15 @@ export class MonitorMetrics {
     }
 
     return {
-      historicalMinPrice: historicalMinPrice === Infinity ? 0 : historicalMinPrice,
-      historicalAvgPrice: totalOffersCount > 0 ? totalPriceSum / totalOffersCount : 0,
-      historicalMaxPrice: historicalMaxPrice === -Infinity ? 0 : historicalMaxPrice,
+      historicalMinPrice:
+        historicalMinPrice === Infinity ? 0 : historicalMinPrice,
+      historicalAvgPrice:
+        totalOffersCount > 0 ? totalPriceSum / totalOffersCount : 0,
+      historicalMaxPrice:
+        historicalMaxPrice === -Infinity ? 0 : historicalMaxPrice,
       currentMinPrice: currentMinPrice === Infinity ? 0 : currentMinPrice,
-      currentAvgPrice: currentOffersCount > 0 ? currentTotalPriceSum / currentOffersCount : 0,
+      currentAvgPrice:
+        currentOffersCount > 0 ? currentTotalPriceSum / currentOffersCount : 0,
       currentMaxPrice: currentMaxPrice === -Infinity ? 0 : currentMaxPrice,
       offerCount: totalOffersCount,
       promotedCount,

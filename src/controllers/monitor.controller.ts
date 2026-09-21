@@ -1,4 +1,14 @@
-import { Body, Controller, Delete, Get, NotFoundException, Param, Post, Put, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  NotFoundException,
+  Param,
+  Post,
+  Put,
+  Query,
+} from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { MonitorConfigService } from '../services/monitor-config.service.js';
 import { MonitorSchedulerService } from '../services/monitor-scheduler.service.js';
@@ -16,7 +26,9 @@ export class MonitorController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Obtener todas las configuraciones de monitores cron' })
+  @ApiOperation({
+    summary: 'Obtener todas las configuraciones de monitores cron',
+  })
   async getAllMonitors() {
     const monitors = await this.monitorConfigService.getAllMonitors();
     return { success: true, count: monitors.length, data: monitors };
@@ -25,7 +37,10 @@ export class MonitorController {
   @Get('catalog/pay-types')
   @ApiOperation({ summary: 'Obtener catálogo de métodos de pago soportados' })
   getCatalog() {
-    return { success: true, data: this.monitorConfigService.getPayTypesCatalog() };
+    return {
+      success: true,
+      data: this.monitorConfigService.getPayTypesCatalog(),
+    };
   }
 
   @Get(':id')
@@ -63,14 +78,18 @@ export class MonitorController {
   }
 
   @Post(':id/collect')
-  @ApiOperation({ summary: 'Forzar recolección inmediata de un snapshot para este monitor' })
+  @ApiOperation({
+    summary: 'Forzar recolección inmediata de un snapshot para este monitor',
+  })
   async collectNow(@Param('id') id: string) {
     const snapshot = await this.monitorSchedulerService.triggerMonitorNow(id);
     return { success: true, data: snapshot };
   }
 
   @Get(':id/history')
-  @ApiOperation({ summary: 'Obtener historial de snapshots y métricas auditadas del monitor' })
+  @ApiOperation({
+    summary: 'Obtener historial de snapshots y métricas auditadas del monitor',
+  })
   @ApiQuery({ name: 'hours', required: false, type: Number, example: 24 })
   @ApiQuery({ name: 'from', required: false, type: String })
   @ApiQuery({ name: 'to', required: false, type: String })
@@ -81,19 +100,31 @@ export class MonitorController {
     @Query('to') to?: string,
   ) {
     const hours = hoursRaw ? parseFloat(hoursRaw) : 24;
-    const history = await this.monitorHistoryService.getHistoryByMonitor(id, hours, from, to);
+    const history = await this.monitorHistoryService.getHistoryByMonitor(
+      id,
+      hours,
+      from,
+      to,
+    );
     return { success: true, data: history };
   }
 
   @Delete(':monitorId/snapshots/:snapshotId')
-  @ApiOperation({ summary: 'Eliminar un snapshot individual del historial de un monitor' })
+  @ApiOperation({
+    summary: 'Eliminar un snapshot individual del historial de un monitor',
+  })
   async deleteSnapshot(
     @Param('monitorId') monitorId: string,
     @Param('snapshotId') snapshotId: string,
   ) {
-    const deleted = await this.monitorHistoryService.deleteSnapshot(monitorId, snapshotId);
+    const deleted = await this.monitorHistoryService.deleteSnapshot(
+      monitorId,
+      snapshotId,
+    );
     if (!deleted) {
-      throw new NotFoundException(`Snapshot '${snapshotId}' no encontrado en el monitor '${monitorId}'.`);
+      throw new NotFoundException(
+        `Snapshot '${snapshotId}' no encontrado en el monitor '${monitorId}'.`,
+      );
     }
     return { success: true, deleted: true };
   }

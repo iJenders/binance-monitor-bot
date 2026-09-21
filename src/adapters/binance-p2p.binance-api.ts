@@ -1,8 +1,19 @@
 import { Injectable } from '@nestjs/common';
-import { BinanceFetchResult, BinanceP2pPort } from '../ports/binance-p2p.port.js';
+import {
+  BinanceFetchResult,
+  BinanceP2pPort,
+} from '../ports/binance-p2p.port.js';
 import { MonitorQueryFilter } from '../domain/monitor-cron.domain.js';
-import { P2POffer, OfferAdvertiser, PaymentMethod } from '../domain/offer.domain.js';
-import { BinanceAdvertisingDto, BinanceAdvDto, BinanceAdvertiserDto } from './dtos/binance-api.dto.js';
+import {
+  P2POffer,
+  OfferAdvertiser,
+  PaymentMethod,
+} from '../domain/offer.domain.js';
+import {
+  BinanceAdvertisingDto,
+  BinanceAdvDto,
+  BinanceAdvertiserDto,
+} from './dtos/binance-api.dto.js';
 
 const BINANCE_PAGE_SIZE = 20;
 
@@ -25,18 +36,24 @@ function mapAdvertiser(dto?: BinanceAdvertiserDto | null): OfferAdvertiser {
  */
 function mapOffer(dto: BinanceAdvertisingDto): P2POffer {
   const adv: BinanceAdvDto = dto.adv ?? {};
-  const isPromoted = typeof dto.privilegeType === 'number' && dto.privilegeType > 0;
+  const isPromoted =
+    typeof dto.privilegeType === 'number' && dto.privilegeType > 0;
 
-  const paymentMethods: PaymentMethod[] = (adv.tradeMethods ?? []).map((tm) => ({
-    id: tm.payType ?? tm.identifier ?? '',
-    name: tm.tradeMethodName ?? tm.tradeMethodShortName ?? tm.payType ?? '',
-  }));
+  const paymentMethods: PaymentMethod[] = (adv.tradeMethods ?? []).map(
+    (tm) => ({
+      id: tm.payType ?? tm.identifier ?? '',
+      name: tm.tradeMethodName ?? tm.tradeMethodShortName ?? tm.payType ?? '',
+    }),
+  );
 
   const price = parseFloat(adv.price ?? '0') || 0;
   const minTransAmount = parseFloat(adv.minSingleTransAmount ?? '0') || 0;
   const maxTransAmount =
-    parseFloat(adv.dynamicMaxSingleTransAmount ?? adv.maxSingleTransAmount ?? '0') || 0;
-  const availableAmount = parseFloat(adv.surplusAmount ?? adv.tradableQuantity ?? '0') || 0;
+    parseFloat(
+      adv.dynamicMaxSingleTransAmount ?? adv.maxSingleTransAmount ?? '0',
+    ) || 0;
+  const availableAmount =
+    parseFloat(adv.surplusAmount ?? adv.tradableQuantity ?? '0') || 0;
 
   const updatedAt = adv.advUpdateTime
     ? typeof adv.advUpdateTime === 'number'
@@ -62,18 +79,23 @@ function mapOffer(dto: BinanceAdvertisingDto): P2POffer {
 
 @Injectable()
 export class BinanceP2pAdapter implements BinanceP2pPort {
-  public async getBinanceOffers(queryFilter: Partial<MonitorQueryFilter>): Promise<BinanceFetchResult> {
+  public async getBinanceOffers(
+    queryFilter: Partial<MonitorQueryFilter>,
+  ): Promise<BinanceFetchResult> {
     const startTime = Date.now();
     const fiat = queryFilter.fiat || 'VES';
     const asset = queryFilter.asset || 'USDT';
     const tradeType = queryFilter.tradeType || 'BUY';
     const totalWanted = Math.max(1, queryFilter.rows ?? 20);
-    const payTypes = (queryFilter.payTypes ?? []).map((item) => item.trim()).filter(Boolean);
+    const payTypes = (queryFilter.payTypes ?? [])
+      .map((item) => item.trim())
+      .filter(Boolean);
 
     const collected: P2POffer[] = [];
     let page = 1;
     let lastHttpStatus = 200;
-    const binanceUrl = 'https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search';
+    const binanceUrl =
+      'https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search';
     let lastPayloadSent: Record<string, unknown> | null = null;
 
     const MAX_PAGES = 5;
@@ -104,7 +126,9 @@ export class BinanceP2pAdapter implements BinanceP2pPort {
         if (!isAssetUnit) {
           body.transAmount = String(queryFilter.transAmount);
         } else if (referencePrice != null && referencePrice > 0) {
-          body.transAmount = String(Math.round(queryFilter.transAmount * referencePrice));
+          body.transAmount = String(
+            Math.round(queryFilter.transAmount * referencePrice),
+          );
         }
       }
 
@@ -125,7 +149,10 @@ export class BinanceP2pAdapter implements BinanceP2pPort {
       }
 
       const raw = await res.text();
-      const json = JSON.parse(raw) as { code: string; data: BinanceAdvertisingDto[] } | null;
+      const json = JSON.parse(raw) as {
+        code: string;
+        data: BinanceAdvertisingDto[];
+      } | null;
 
       if (json && json.code === '000000' && Array.isArray(json.data)) {
         const pageData = json.data;
@@ -140,20 +167,26 @@ export class BinanceP2pAdapter implements BinanceP2pPort {
 
         // Filtrar por cantidad de activo si aplica, antes de mapear al dominio
         const validPageItems =
-          isAssetUnit && queryFilter.transAmount != null && queryFilter.transAmount > 0
+          isAssetUnit &&
+          queryFilter.transAmount != null &&
+          queryFilter.transAmount > 0
             ? pageData.filter((item) => {
                 const adv = item.adv ?? {};
-                const minQty = adv.minSingleTransQuantity ? parseFloat(adv.minSingleTransQuantity) : null;
+                const minQty = adv.minSingleTransQuantity
+                  ? parseFloat(adv.minSingleTransQuantity)
+                  : null;
                 const maxQty = adv.dynamicMaxSingleTransQuantity
                   ? parseFloat(adv.dynamicMaxSingleTransQuantity)
                   : adv.maxSingleTransQuantity
-                  ? parseFloat(adv.maxSingleTransQuantity)
-                  : adv.surplusAmount
-                  ? parseFloat(adv.surplusAmount)
-                  : null;
+                    ? parseFloat(adv.maxSingleTransQuantity)
+                    : adv.surplusAmount
+                      ? parseFloat(adv.surplusAmount)
+                      : null;
 
-                if (minQty !== null && minQty > queryFilter.transAmount!) return false;
-                if (maxQty !== null && maxQty < queryFilter.transAmount!) return false;
+                if (minQty !== null && minQty > queryFilter.transAmount!)
+                  return false;
+                if (maxQty !== null && maxQty < queryFilter.transAmount!)
+                  return false;
                 return true;
               })
             : pageData;
@@ -179,7 +212,14 @@ export class BinanceP2pAdapter implements BinanceP2pPort {
       executionDurationMs: duration,
       auditTrail: {
         requestUrl: binanceUrl,
-        requestPayload: (lastPayloadSent ?? { fiat, asset, tradeType, payTypes, rows: totalWanted, page: 1 }) as unknown as MonitorQueryFilter & { page: number },
+        requestPayload: (lastPayloadSent ?? {
+          fiat,
+          asset,
+          tradeType,
+          payTypes,
+          rows: totalWanted,
+          page: 1,
+        }) as unknown as MonitorQueryFilter & { page: number },
         httpStatus: lastHttpStatus,
         recordsCount: finalRecords.length,
       },

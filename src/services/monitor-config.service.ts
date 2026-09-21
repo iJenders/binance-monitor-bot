@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { MonitorConfigRepositoryPort } from '../ports/monitor-config-repository.port.js';
 import { MonitorCronConfig } from '../domain/monitor-cron.domain.js';
@@ -6,7 +10,7 @@ import { VES_PAY_TYPES } from '../domain/ves-pay-types.js';
 
 @Injectable()
 export class MonitorConfigService {
-  constructor(private readonly repositoryPort: MonitorConfigRepositoryPort) { }
+  constructor(private readonly repositoryPort: MonitorConfigRepositoryPort) {}
 
   public async getAllMonitors(): Promise<MonitorCronConfig[]> {
     return this.repositoryPort.findAll();
@@ -41,12 +45,23 @@ export class MonitorConfigService {
       throw new BadRequestException('El nombre del monitor es obligatorio.');
     }
 
-    const interval = Math.max(5000, Math.min(3600000, Number(dto.cronIntervalMs) || 60000));
-    const retention = Math.max(1, Math.min(720, Number(dto.retentionPolicy?.retentionHours) || 48));
-    const rows = Math.max(1, Math.min(100, Number(dto.queryFilter?.rows) || 20));
+    const interval = Math.max(
+      5000,
+      Math.min(3600000, Number(dto.cronIntervalMs) || 60000),
+    );
+    const retention = Math.max(
+      1,
+      Math.min(720, Number(dto.retentionPolicy?.retentionHours) || 48),
+    );
+    const rows = Math.max(
+      1,
+      Math.min(100, Number(dto.queryFilter?.rows) || 20),
+    );
 
     const parseOptNum = (val: any) =>
-      val !== undefined && val !== null && val !== '' && !isNaN(Number(val)) ? Number(val) : null;
+      val !== undefined && val !== null && val !== '' && !isNaN(Number(val))
+        ? Number(val)
+        : null;
 
     const newConfig: MonitorCronConfig = {
       id: randomUUID(),
@@ -57,10 +72,13 @@ export class MonitorConfigService {
         fiat: (dto.queryFilter?.fiat || 'VES').toUpperCase(),
         asset: (dto.queryFilter?.asset || 'USDT').toUpperCase(),
         tradeType: dto.queryFilter?.tradeType === 'SELL' ? 'SELL' : 'BUY',
-        payTypes: Array.isArray(dto.queryFilter?.payTypes) ? dto.queryFilter.payTypes : [],
+        payTypes: Array.isArray(dto.queryFilter?.payTypes)
+          ? dto.queryFilter.payTypes
+          : [],
         rows,
         transAmount: parseOptNum(dto.queryFilter?.transAmount),
-        transAmountUnit: dto.queryFilter?.transAmountUnit === 'ASSET' ? 'ASSET' : 'FIAT',
+        transAmountUnit:
+          dto.queryFilter?.transAmountUnit === 'ASSET' ? 'ASSET' : 'FIAT',
       },
       retentionPolicy: {
         retentionHours: retention,
@@ -87,7 +105,9 @@ export class MonitorConfigService {
 
     if (dto.name !== undefined) {
       if (!dto.name.trim()) {
-        throw new BadRequestException('El nombre del monitor no puede estar vacío.');
+        throw new BadRequestException(
+          'El nombre del monitor no puede estar vacío.',
+        );
       }
       existing.name = dto.name.trim();
     }
@@ -97,19 +117,34 @@ export class MonitorConfigService {
     }
 
     if (dto.cronIntervalMs !== undefined) {
-      existing.cronIntervalMs = Math.max(5000, Math.min(3600000, Number(dto.cronIntervalMs) || 60000));
+      existing.cronIntervalMs = Math.max(
+        5000,
+        Math.min(3600000, Number(dto.cronIntervalMs) || 60000),
+      );
     }
 
     const parseOptNum = (val: any) =>
-      val !== undefined && val !== null && val !== '' && !isNaN(Number(val)) ? Number(val) : null;
+      val !== undefined && val !== null && val !== '' && !isNaN(Number(val))
+        ? Number(val)
+        : null;
 
     if (dto.queryFilter) {
       existing.queryFilter = {
         fiat: (dto.queryFilter.fiat || existing.queryFilter.fiat).toUpperCase(),
-        asset: (dto.queryFilter.asset || existing.queryFilter.asset).toUpperCase(),
+        asset: (
+          dto.queryFilter.asset || existing.queryFilter.asset
+        ).toUpperCase(),
         tradeType: dto.queryFilter.tradeType === 'SELL' ? 'SELL' : 'BUY',
-        payTypes: Array.isArray(dto.queryFilter.payTypes) ? dto.queryFilter.payTypes : existing.queryFilter.payTypes,
-        rows: Math.max(1, Math.min(100, Number(dto.queryFilter.rows) || existing.queryFilter.rows)),
+        payTypes: Array.isArray(dto.queryFilter.payTypes)
+          ? dto.queryFilter.payTypes
+          : existing.queryFilter.payTypes,
+        rows: Math.max(
+          1,
+          Math.min(
+            100,
+            Number(dto.queryFilter.rows) || existing.queryFilter.rows,
+          ),
+        ),
         transAmount:
           dto.queryFilter.transAmount !== undefined
             ? parseOptNum(dto.queryFilter.transAmount)
@@ -126,7 +161,11 @@ export class MonitorConfigService {
     if (dto.retentionPolicy?.retentionHours !== undefined) {
       existing.retentionPolicy.retentionHours = Math.max(
         1,
-        Math.min(720, Number(dto.retentionPolicy.retentionHours) || existing.retentionPolicy.retentionHours),
+        Math.min(
+          720,
+          Number(dto.retentionPolicy.retentionHours) ||
+            existing.retentionPolicy.retentionHours,
+        ),
       );
     }
 

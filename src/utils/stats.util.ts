@@ -1,4 +1,7 @@
-export function calculatePercentile(sortedValues: number[], percentile: number): number {
+export function calculatePercentile(
+  sortedValues: number[],
+  percentile: number,
+): number {
   if (sortedValues.length === 0) return 0;
   if (percentile <= 0) return sortedValues[0];
   if (percentile >= 100) return sortedValues[sortedValues.length - 1];
@@ -12,11 +15,15 @@ export function calculatePercentile(sortedValues: number[], percentile: number):
     return sortedValues[lowerIndex];
   }
 
-  return sortedValues[lowerIndex] * (1 - weight) + sortedValues[upperIndex] * weight;
+  return (
+    sortedValues[lowerIndex] * (1 - weight) + sortedValues[upperIndex] * weight
+  );
 }
 
 export function calculateStdDev(values: number[], mean: number): number {
   if (values.length <= 1) return 0;
-  const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+  const variance =
+    values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) /
+    values.length;
   return Math.sqrt(variance);
 }

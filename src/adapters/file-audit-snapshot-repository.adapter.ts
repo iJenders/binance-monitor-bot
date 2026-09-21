@@ -33,7 +33,11 @@ export class FileAuditSnapshotRepositoryAdapter implements AuditSnapshotReposito
     }
   }
 
-  public async findByMonitor(monitorId: string, startDate?: Date, endDate?: Date): Promise<AuditSnapshot[]> {
+  public async findByMonitor(
+    monitorId: string,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<AuditSnapshot[]> {
     const filePath = this.getFilePath(monitorId);
     try {
       const content = await fs.readFile(filePath, 'utf-8');
@@ -61,12 +65,17 @@ export class FileAuditSnapshotRepositoryAdapter implements AuditSnapshotReposito
       if (err.code === 'ENOENT') {
         return [];
       }
-      this.logger.error(`Error al consultar snapshots de monitor ${monitorId}: ${err}`);
+      this.logger.error(
+        `Error al consultar snapshots de monitor ${monitorId}: ${err}`,
+      );
       return [];
     }
   }
 
-  public async purgeOlderThan(monitorId: string, cutoff: Date): Promise<number> {
+  public async purgeOlderThan(
+    monitorId: string,
+    cutoff: Date,
+  ): Promise<number> {
     const filePath = this.getFilePath(monitorId);
     try {
       const content = await fs.readFile(filePath, 'utf-8');
@@ -100,7 +109,9 @@ export class FileAuditSnapshotRepositoryAdapter implements AuditSnapshotReposito
       if (err.code === 'ENOENT') {
         return 0;
       }
-      this.logger.error(`Error durante depuración de snapshots de monitor ${monitorId}: ${err}`);
+      this.logger.error(
+        `Error durante depuración de snapshots de monitor ${monitorId}: ${err}`,
+      );
       return 0;
     }
   }
@@ -114,7 +125,10 @@ export class FileAuditSnapshotRepositoryAdapter implements AuditSnapshotReposito
     }
   }
 
-  public async deleteSnapshot(monitorId: string, snapshotId: string): Promise<boolean> {
+  public async deleteSnapshot(
+    monitorId: string,
+    snapshotId: string,
+  ): Promise<boolean> {
     const filePath = this.getFilePath(monitorId);
     try {
       const content = await fs.readFile(filePath, 'utf-8');
@@ -138,7 +152,9 @@ export class FileAuditSnapshotRepositoryAdapter implements AuditSnapshotReposito
       if (found) {
         const nextContent = kept.length > 0 ? kept.join('\n') + '\n' : '';
         await fs.writeFile(filePath, nextContent, 'utf-8');
-        this.logger.log(`Snapshot [ID: ${snapshotId}] eliminado del monitor ${monitorId}.`);
+        this.logger.log(
+          `Snapshot [ID: ${snapshotId}] eliminado del monitor ${monitorId}.`,
+        );
       }
 
       return found;

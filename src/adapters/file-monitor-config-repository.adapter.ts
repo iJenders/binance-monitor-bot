@@ -7,7 +7,11 @@ import { MonitorConfigRepositoryPort } from '../ports/monitor-config-repository.
 @Injectable()
 export class FileMonitorConfigRepositoryAdapter implements MonitorConfigRepositoryPort {
   private readonly logger = new Logger(FileMonitorConfigRepositoryAdapter.name);
-  private readonly filePath = path.join(process.cwd(), 'data', 'monitors_config.json');
+  private readonly filePath = path.join(
+    process.cwd(),
+    'data',
+    'monitors_config.json',
+  );
 
   private async ensureFile(): Promise<void> {
     try {
@@ -32,7 +36,11 @@ export class FileMonitorConfigRepositoryAdapter implements MonitorConfigReposito
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-      await fs.writeFile(this.filePath, JSON.stringify([defaultMonitor], null, 2), 'utf-8');
+      await fs.writeFile(
+        this.filePath,
+        JSON.stringify([defaultMonitor], null, 2),
+        'utf-8',
+      );
     }
   }
 
@@ -69,7 +77,11 @@ export class FileMonitorConfigRepositoryAdapter implements MonitorConfigReposito
     if (filtered.length === all.length) {
       return false;
     }
-    await fs.writeFile(this.filePath, JSON.stringify(filtered, null, 2), 'utf-8');
+    await fs.writeFile(
+      this.filePath,
+      JSON.stringify(filtered, null, 2),
+      'utf-8',
+    );
     return true;
   }
 }

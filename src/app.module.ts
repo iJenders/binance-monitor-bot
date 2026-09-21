@@ -23,10 +23,7 @@ import { MonitorHistoryService } from './services/monitor-history.service.js';
 import { MonitorController } from './controllers/monitor.controller.js';
 
 @Module({
-  imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
-    ScheduleModule.forRoot(),
-  ],
+  imports: [ConfigModule.forRoot({ isGlobal: true }), ScheduleModule.forRoot()],
   controllers: [AppController, LiveOffersController, MonitorController],
   providers: [
     AppService,

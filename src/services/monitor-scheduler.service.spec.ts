@@ -11,7 +11,13 @@ describe('MonitorSchedulerService', () => {
     name: 'Test Monitor',
     enabled: true,
     cronIntervalMs: 60000,
-    queryFilter: { fiat: 'VES', asset: 'USDT', tradeType: 'BUY', payTypes: ['Banesco'], rows: 10 },
+    queryFilter: {
+      fiat: 'VES',
+      asset: 'USDT',
+      tradeType: 'BUY',
+      payTypes: ['Banesco'],
+      rows: 10,
+    },
     retentionPolicy: { retentionHours: 48 },
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -50,7 +56,11 @@ describe('MonitorSchedulerService', () => {
       deleteByMonitorId: vi.fn().mockResolvedValue(undefined),
     };
 
-    const scheduler = new MonitorSchedulerService(mockConfigService, mockBinancePort, mockSnapshotRepo);
+    const scheduler = new MonitorSchedulerService(
+      mockConfigService,
+      mockBinancePort,
+      mockSnapshotRepo,
+    );
 
     const result = await scheduler.triggerMonitorNow('m-test');
 

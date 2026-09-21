@@ -10,16 +10,41 @@ export class LiveOffersController {
   @Get()
   @ApiOperation({
     summary: 'Obtener ofertas P2P en el instante actual',
-    description: 'Realiza una consulta directa y en tiempo real a Binance P2P sin guardar historial.',
+    description:
+      'Realiza una consulta directa y en tiempo real a Binance P2P sin guardar historial.',
   })
   @ApiQuery({ name: 'fiat', required: false, example: 'VES' })
   @ApiQuery({ name: 'asset', required: false, example: 'USDT' })
-  @ApiQuery({ name: 'tradeType', required: false, enum: ['BUY', 'SELL'], example: 'BUY' })
-  @ApiQuery({ name: 'payTypes', required: false, description: 'Separados por coma', example: 'Banesco,PagoMovil' })
+  @ApiQuery({
+    name: 'tradeType',
+    required: false,
+    enum: ['BUY', 'SELL'],
+    example: 'BUY',
+  })
+  @ApiQuery({
+    name: 'payTypes',
+    required: false,
+    description: 'Separados por coma',
+    example: 'Banesco,PagoMovil',
+  })
   @ApiQuery({ name: 'rows', required: false, type: Number, example: 20 })
-  @ApiQuery({ name: 'transAmount', required: false, type: Number, description: 'Monto de transacción enviado a la API de Binance', example: 5000 })
-  @ApiQuery({ name: 'transAmountUnit', required: false, enum: ['FIAT', 'ASSET'], example: 'FIAT' })
-  @ApiResponse({ status: 200, description: 'Ofertas en vivo recuperadas exitosamente.' })
+  @ApiQuery({
+    name: 'transAmount',
+    required: false,
+    type: Number,
+    description: 'Monto de transacción enviado a la API de Binance',
+    example: 5000,
+  })
+  @ApiQuery({
+    name: 'transAmountUnit',
+    required: false,
+    enum: ['FIAT', 'ASSET'],
+    example: 'FIAT',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Ofertas en vivo recuperadas exitosamente.',
+  })
   async getLiveOffers(
     @Query('fiat') fiat?: string,
     @Query('asset') asset?: string,
@@ -37,7 +62,8 @@ export class LiveOffersController {
       : [];
     const rows = rowsRaw ? parseInt(rowsRaw, 10) : 20;
 
-    const parseNum = (v?: string) => (v && !isNaN(parseFloat(v)) ? parseFloat(v) : undefined);
+    const parseNum = (v?: string) =>
+      v && !isNaN(parseFloat(v)) ? parseFloat(v) : undefined;
 
     const data = await this.liveOffersService.getLiveOffers({
       fiat,

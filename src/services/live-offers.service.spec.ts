@@ -14,8 +14,16 @@ describe('LiveOffersService', () => {
         ],
         executionDurationMs: 150,
         auditTrail: {
-          requestUrl: 'https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search',
-          requestPayload: { fiat: 'VES', asset: 'USDT', tradeType: 'BUY', payTypes: ['Banesco'], rows: 20, page: 1 },
+          requestUrl:
+            'https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search',
+          requestPayload: {
+            fiat: 'VES',
+            asset: 'USDT',
+            tradeType: 'BUY',
+            payTypes: ['Banesco'],
+            rows: 20,
+            page: 1,
+          },
           httpStatus: 200,
           recordsCount: 1,
         },
@@ -23,7 +31,10 @@ describe('LiveOffersService', () => {
     };
 
     const service = new LiveOffersService(mockBinancePort);
-    const result = await service.getLiveOffers({ fiat: 'VES', payTypes: ['Banesco'] });
+    const result = await service.getLiveOffers({
+      fiat: 'VES',
+      payTypes: ['Banesco'],
+    });
 
     expect(result.offers.length).toBe(1);
     expect(result.durationMs).toBe(150);

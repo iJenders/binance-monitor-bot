@@ -9,5 +9,7 @@ export interface BinanceFetchResult {
 }
 
 export abstract class BinanceP2pPort {
-  abstract getBinanceOffers(queryFilter: Partial<MonitorQueryFilter>): Promise<BinanceFetchResult>;
+  abstract getBinanceOffers(
+    queryFilter: Partial<MonitorQueryFilter>,
+  ): Promise<BinanceFetchResult>;
 }

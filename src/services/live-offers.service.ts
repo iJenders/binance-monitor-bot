@@ -20,7 +20,8 @@ export class LiveOffersService {
       tradeType: filter?.tradeType || 'BUY',
       payTypes: filter?.payTypes || [],
       rows: filter?.rows || 20,
-      transAmount: filter?.transAmount != null ? Number(filter.transAmount) : null,
+      transAmount:
+        filter?.transAmount != null ? Number(filter.transAmount) : null,
       transAmountUnit: filter?.transAmountUnit === 'ASSET' ? 'ASSET' : 'FIAT',
     };
 
