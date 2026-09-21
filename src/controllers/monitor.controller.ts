@@ -1,8 +1,10 @@
 import { Body, Controller, Delete, Get, NotFoundException, Param, Post, Put, Query } from '@nestjs/common';
-import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { MonitorConfigService } from '../services/monitor-config.service.js';
 import { MonitorSchedulerService } from '../services/monitor-scheduler.service.js';
 import { MonitorHistoryService } from '../services/monitor-history.service.js';
+import { CreateMonitorDto } from './dtos/create-monitor.dto.js';
+import { UpdateMonitorDto } from './dtos/update-monitor.dto.js';
 
 @ApiTags('Monitors (Modulo 1 - Monitoreo & Crons)')
 @Controller('api/v1/monitors')
@@ -35,14 +37,20 @@ export class MonitorController {
 
   @Post()
   @ApiOperation({ summary: 'Crear una nueva rutina de monitoreo cron' })
-  async createMonitor(@Body() dto: any) {
-    const created = await this.monitorConfigService.createMonitor(dto);
+  async createMonitor(@Body() dto: CreateMonitorDto) {
+    const created = await this.monitorConfigService.createMonitor({
+      name: dto.name,
+      cronIntervalMs: dto.cronIntervalMs,
+      queryFilter: dto.queryFilter ?? {},
+      retentionPolicy: dto.retentionPolicy,
+      enabled: dto.enabled,
+    });
     return { success: true, data: created };
   }
 
   @Put(':id')
   @ApiOperation({ summary: 'Actualizar configuración de un monitor cron' })
-  async updateMonitor(@Param('id') id: string, @Body() dto: any) {
+  async updateMonitor(@Param('id') id: string, @Body() dto: UpdateMonitorDto) {
     const updated = await this.monitorConfigService.updateMonitor(id, dto);
     return { success: true, data: updated };
   }

@@ -1,9 +1,9 @@
-import { Advertising } from '../domain/advertising.js';
+import { P2POffer } from '../domain/offer.domain.js';
 import { AuditTrail } from '../domain/audit-snapshot.domain.js';
 import { MonitorQueryFilter } from '../domain/monitor-cron.domain.js';
 
 export interface BinanceFetchResult {
-  records: Advertising[];
+  records: P2POffer[];
   auditTrail: AuditTrail;
   executionDurationMs: number;
 }

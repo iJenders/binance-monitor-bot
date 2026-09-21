@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { BinanceP2pPort } from '../ports/binance-p2p.port.js';
-import { Advertising } from '../domain/advertising.js';
+import { P2POffer } from '../domain/offer.domain.js';
 import { MonitorQueryFilter } from '../domain/monitor-cron.domain.js';
 
 @Injectable()
@@ -8,7 +8,7 @@ export class LiveOffersService {
   constructor(private readonly binanceP2pPort: BinanceP2pPort) {}
 
   public async getLiveOffers(filter?: Partial<MonitorQueryFilter>): Promise<{
-    offers: Advertising[];
+    offers: P2POffer[];
     total: number;
     fetchedAt: string;
     durationMs: number;

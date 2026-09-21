@@ -108,7 +108,7 @@ defineEmits<{
 
 const activeTab = ref<'overview' | 'fields' | 'tips'>('overview');
 
-const tabs = [
+const tabs: Array<{ id: 'overview' | 'fields' | 'tips'; label: string }> = [
   { id: 'overview', label: 'Visión General' },
   { id: 'fields', label: 'Guía de Campos' },
   { id: 'tips', label: 'Consejos & Tips' },

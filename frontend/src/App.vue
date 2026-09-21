@@ -206,36 +206,36 @@
                   <td>
                     <div style="font-weight: 600;">
                       {{ item.advertiser?.nickName || 'Anónimo' }}
-                      <span v-if="item.advertiser?.userType === 'merchant'" class="badge-tag badge-pro">PRO</span>
+                      <span v-if="item.advertiser?.isProMerchant" class="badge-tag badge-pro">PRO</span>
                     </div>
                   </td>
                   <td>
-                    <span class="price-text">Bs. {{ item.adv?.price }}</span>
+                    <span class="price-text">Bs. {{ item.price }}</span>
                   </td>
                   <td>
-                    <span style="font-weight: 600;">{{ item.adv?.surplusAmount }}</span> USDT
+                    <span style="font-weight: 600;">{{ item.availableAmount }}</span> USDT
                   </td>
                   <td>
                     <span style="font-size: 12px; color: var(--text-secondary);">
-                      Bs. {{ item.adv?.minSingleTransAmount }} - Bs. {{ item.adv?.maxSingleTransAmount }}
+                      Bs. {{ item.minTransAmount }} - Bs. {{ item.maxTransAmount }}
                     </span>
                   </td>
                   <td>
                     <div style="font-weight: 500;">
-                      {{ item.advertiser?.monthOrderCount || 0 }} órdenes
+                      {{ item.advertiser?.totalOrders || 0 }} órdenes
                     </div>
                     <div style="font-size: 11px; color: var(--color-green)">
-                      {{ ((item.advertiser?.monthFinishRate || 0) * 100).toFixed(1) }}% éxito
+                      {{ ((item.advertiser?.monthlyCompletionRate || 0) * 100).toFixed(1) }}% éxito
                     </div>
                   </td>
                   <td>
                     <div style="display: flex; flex-wrap: wrap; gap: 4px;">
                       <span
-                        v-for="(method, mIdx) in (item.adv?.tradeMethods || [])"
+                        v-for="(method, mIdx) in (item.paymentMethods || [])"
                         :key="mIdx"
                         class="badge-tag"
                       >
-                        {{ method.tradeMethodName || method.identifier }}
+                        {{ method.name }}
                       </span>
                     </div>
                   </td>
@@ -445,7 +445,7 @@
               <div>
                 <h2 class="card-title">Desviación Estándar (Instante Actual)</h2>
                 <p style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">
-                  Distribución de precios en el último snapshot respecto a la media y desviación estándar (σ = {{ formatNumber(monitorMetrics.currentStdDevPrice) }})
+                  Distribución de precios en el último snapshot respecto a la media y desviación estándar (σ = {{ formatNumber(currentStdDev) }})
                 </p>
               </div>
             </div>
@@ -749,7 +749,7 @@ const filteredLiveOffers = computed(() => {
   const q = liveSearchQuery.value.toLowerCase();
   return liveOffers.value.filter((item) => {
     const nick = item.advertiser?.nickName?.toLowerCase() || '';
-    const methods = (item.adv?.tradeMethods || []).map((m: any) => m.tradeMethodName || '').join(' ').toLowerCase();
+    const methods = (item.paymentMethods || []).map((m: any) => m.name || '').join(' ').toLowerCase();
     return nick.includes(q) || methods.includes(q);
   });
 });
@@ -792,6 +792,7 @@ let monitorAutoRefreshTimer: ReturnType<typeof setInterval> | null = null;
 const showMonitorModal = ref(false);
 const editingMonitor = ref<any>(null);
 const selectedAuditSnapshot = ref<any>(null);
+const currentStdDev = ref(0);
 
 // Sorting and Pagination state for snapshots table
 const snapshotPage = ref(1);
@@ -1062,13 +1063,13 @@ const renderChart = () => {
 
     const allRecords = snap.records || [];
 
-    // Separate promoted from regular records
-    const regularRecords = allRecords.filter((r: any) => !(typeof r.privilegeType === 'number' && r.privilegeType > 0));
-    const promotedRecords = allRecords.filter((r: any) => typeof r.privilegeType === 'number' && r.privilegeType > 0);
+    // Separate promoted from regular records using the new P2POffer.isPromoted field
+    const regularRecords = allRecords.filter((r: any) => !r.isPromoted);
+    const promotedRecords = allRecords.filter((r: any) => r.isPromoted);
 
     // Regular price series (min/avg/max exclude promoted)
     const prices = regularRecords
-      .map((r: any) => parseFloat(r.adv?.price))
+      .map((r: any) => typeof r.price === 'number' ? r.price : parseFloat(r.price))
       .filter((p: number) => !isNaN(p) && p > 0);
 
     if (prices.length > 0) {
@@ -1083,7 +1084,7 @@ const renderChart = () => {
 
     // Promoted series: use the highest price among promoted records in this snapshot
     const promotedPriceValues = promotedRecords
-      .map((r: any) => parseFloat(r.adv?.price))
+      .map((r: any) => typeof r.price === 'number' ? r.price : parseFloat(r.price))
       .filter((p: number) => !isNaN(p) && p > 0);
 
     promotedPrices.push(promotedPriceValues.length > 0 ? Math.max(...promotedPriceValues) : null);
@@ -1201,21 +1202,25 @@ const renderStdDevChart = () => {
 
   const latestSnapshot = monitorSnapshots.value[monitorSnapshots.value.length - 1];
   const allRecords = latestSnapshot.records || [];
-  const regularRecords = allRecords.filter((r: any) => !(typeof r.privilegeType === 'number' && r.privilegeType > 0));
+  const regularRecords = allRecords.filter((r: any) => !r.isPromoted);
   
   const prices = regularRecords
-    .map((r: any) => parseFloat(r.adv?.price))
+    .map((r: any) => typeof r.price === 'number' ? r.price : parseFloat(r.price))
     .filter((p: number) => !isNaN(p) && p > 0)
     .sort((a: number, b: number) => a - b);
 
   if (prices.length === 0) return;
 
-  const avg = monitorMetrics.value.currentAvgPrice;
-  const stdDev = monitorMetrics.value.currentStdDevPrice;
+  const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+  const variance = prices.reduce((sum, val) => sum + Math.pow(val - avg, 2), 0) / prices.length;
+  const stdDev = Math.sqrt(variance);
+  
+  currentStdDev.value = stdDev;
+
   const upperStdDev = avg + stdDev;
   const lowerStdDev = avg - stdDev;
 
-  const labels = prices.map((_, i) => `Oferta ${i + 1}`);
+  const labels = prices.map((_: any, i: number) => `Oferta ${i + 1}`);
 
   stdDevChartInstance = new Chart(stdDevCanvas.value, {
     type: 'bar',

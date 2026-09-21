@@ -1,9 +1,64 @@
 import { Injectable } from '@nestjs/common';
 import { BinanceFetchResult, BinanceP2pPort } from '../ports/binance-p2p.port.js';
-import { Advertising } from '../domain/advertising.js';
 import { MonitorQueryFilter } from '../domain/monitor-cron.domain.js';
+import { P2POffer, OfferAdvertiser, PaymentMethod } from '../domain/offer.domain.js';
+import { BinanceAdvertisingDto, BinanceAdvDto, BinanceAdvertiserDto } from './dtos/binance-api.dto.js';
 
 const BINANCE_PAGE_SIZE = 20;
+
+/**
+ * Mapea un anunciante de Binance al modelo de dominio puro OfferAdvertiser.
+ */
+function mapAdvertiser(dto?: BinanceAdvertiserDto | null): OfferAdvertiser {
+  return {
+    userNo: dto?.userNo ?? '',
+    nickName: dto?.nickName ?? '',
+    totalOrders: dto?.orderCount ?? 0,
+    monthlyCompletionRate: dto?.monthFinishRate ?? 0,
+    positiveRate: dto?.positiveRate ?? 0,
+    isProMerchant: dto?.proMerchant ?? false,
+  };
+}
+
+/**
+ * Mapea un anuncio de Binance al modelo de dominio puro P2POffer.
+ */
+function mapOffer(dto: BinanceAdvertisingDto): P2POffer {
+  const adv: BinanceAdvDto = dto.adv ?? {};
+  const isPromoted = typeof dto.privilegeType === 'number' && dto.privilegeType > 0;
+
+  const paymentMethods: PaymentMethod[] = (adv.tradeMethods ?? []).map((tm) => ({
+    id: tm.payType ?? tm.identifier ?? '',
+    name: tm.tradeMethodName ?? tm.tradeMethodShortName ?? tm.payType ?? '',
+  }));
+
+  const price = parseFloat(adv.price ?? '0') || 0;
+  const minTransAmount = parseFloat(adv.minSingleTransAmount ?? '0') || 0;
+  const maxTransAmount =
+    parseFloat(adv.dynamicMaxSingleTransAmount ?? adv.maxSingleTransAmount ?? '0') || 0;
+  const availableAmount = parseFloat(adv.surplusAmount ?? adv.tradableQuantity ?? '0') || 0;
+
+  const updatedAt = adv.advUpdateTime
+    ? typeof adv.advUpdateTime === 'number'
+      ? new Date(adv.advUpdateTime).toISOString()
+      : String(adv.advUpdateTime)
+    : null;
+
+  return {
+    advNo: adv.advNo ?? '',
+    price,
+    minTransAmount,
+    maxTransAmount,
+    availableAmount,
+    asset: adv.asset ?? '',
+    fiat: adv.fiatUnit ?? '',
+    tradeType: adv.tradeType === 'SELL' ? 'SELL' : 'BUY',
+    paymentMethods,
+    advertiser: mapAdvertiser(dto.advertiser),
+    isPromoted,
+    updatedAt,
+  };
+}
 
 @Injectable()
 export class BinanceP2pAdapter implements BinanceP2pPort {
@@ -15,18 +70,18 @@ export class BinanceP2pAdapter implements BinanceP2pPort {
     const totalWanted = Math.max(1, queryFilter.rows ?? 20);
     const payTypes = (queryFilter.payTypes ?? []).map((item) => item.trim()).filter(Boolean);
 
-    const collected: Advertising[] = [];
+    const collected: P2POffer[] = [];
     let page = 1;
     let lastHttpStatus = 200;
     const binanceUrl = 'https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search';
-    let lastPayloadSent: any = null;
+    let lastPayloadSent: Record<string, unknown> | null = null;
 
     const MAX_PAGES = 5;
     const isAssetUnit = queryFilter.transAmountUnit === 'ASSET';
     let referencePrice: number | null = null;
 
     while (collected.length < totalWanted && page <= MAX_PAGES) {
-      const body: any = {
+      const body: Record<string, unknown> = {
         fiat,
         page,
         rows: BINANCE_PAGE_SIZE,
@@ -70,28 +125,31 @@ export class BinanceP2pAdapter implements BinanceP2pPort {
       }
 
       const raw = await res.text();
-      const json = JSON.parse(raw);
+      const json = JSON.parse(raw) as { code: string; data: BinanceAdvertisingDto[] } | null;
 
       if (json && json.code === '000000' && Array.isArray(json.data)) {
-        const pageData = json.data as Advertising[];
+        const pageData = json.data;
         if (pageData.length === 0) {
           break;
         }
 
-        if (referencePrice === null && pageData.length > 0 && pageData[0].adv?.price) {
+        // Capturar precio de referencia para conversiones de unidad ASSET
+        if (referencePrice === null && pageData[0]?.adv?.price) {
           referencePrice = parseFloat(pageData[0].adv.price);
         }
 
+        // Filtrar por cantidad de activo si aplica, antes de mapear al dominio
         const validPageItems =
           isAssetUnit && queryFilter.transAmount != null && queryFilter.transAmount > 0
             ? pageData.filter((item) => {
-                const minQty = item.adv?.minSingleTransQuantity ? parseFloat(item.adv.minSingleTransQuantity) : null;
-                const maxQty = item.adv?.dynamicMaxSingleTransQuantity
-                  ? parseFloat(item.adv.dynamicMaxSingleTransQuantity)
-                  : item.adv?.maxSingleTransQuantity
-                  ? parseFloat(item.adv.maxSingleTransQuantity)
-                  : item.adv?.surplusAmount
-                  ? parseFloat(item.adv.surplusAmount)
+                const adv = item.adv ?? {};
+                const minQty = adv.minSingleTransQuantity ? parseFloat(adv.minSingleTransQuantity) : null;
+                const maxQty = adv.dynamicMaxSingleTransQuantity
+                  ? parseFloat(adv.dynamicMaxSingleTransQuantity)
+                  : adv.maxSingleTransQuantity
+                  ? parseFloat(adv.maxSingleTransQuantity)
+                  : adv.surplusAmount
+                  ? parseFloat(adv.surplusAmount)
                   : null;
 
                 if (minQty !== null && minQty > queryFilter.transAmount!) return false;
@@ -100,7 +158,8 @@ export class BinanceP2pAdapter implements BinanceP2pPort {
               })
             : pageData;
 
-        collected.push(...validPageItems);
+        // Mapear DTOs de Binance → Entidades de Dominio
+        collected.push(...validPageItems.map(mapOffer));
 
         if (pageData.length < BINANCE_PAGE_SIZE) {
           break;
@@ -120,7 +179,7 @@ export class BinanceP2pAdapter implements BinanceP2pPort {
       executionDurationMs: duration,
       auditTrail: {
         requestUrl: binanceUrl,
-        requestPayload: lastPayloadSent || { fiat, asset, tradeType, payTypes, rows: totalWanted, page: 1 },
+        requestPayload: (lastPayloadSent ?? { fiat, asset, tradeType, payTypes, rows: totalWanted, page: 1 }) as unknown as MonitorQueryFilter & { page: number },
         httpStatus: lastHttpStatus,
         recordsCount: finalRecords.length,
       },

@@ -151,7 +151,7 @@
                     <div style="font-weight: 600; white-space: nowrap;">
                       {{ item.advertiser?.nickName || 'Anónimo' }}
                       <span
-                        v-if="item.advertiser?.userType === 'merchant'"
+                        v-if="item.advertiser?.isProMerchant"
                         class="badge-tag badge-pro"
                         style="margin-left: 4px;"
                       >PRO</span>
@@ -161,29 +161,29 @@
                     </div>
                   </td>
                   <td>
-                    <span class="price-text">Bs. {{ item.adv?.price }}</span>
+                    <span class="price-text">Bs. {{ item.price }}</span>
                   </td>
                   <td style="font-weight: 600;">
-                    {{ item.adv?.surplusAmount }} <span style="color: var(--text-muted); font-size: 11px;">USDT</span>
+                    {{ item.availableAmount }} <span style="color: var(--text-muted); font-size: 11px;">USDT</span>
                   </td>
                   <td style="font-size: 12px; color: var(--text-secondary); white-space: nowrap;">
-                    Bs. {{ item.adv?.minSingleTransAmount }}
+                    Bs. {{ item.minTransAmount }}
                     <span style="color: var(--text-muted);">–</span>
-                    {{ item.adv?.maxSingleTransAmount }}
+                    {{ item.maxTransAmount }}
                   </td>
                   <td>
                     <div style="display: flex; flex-wrap: wrap; gap: 4px;">
                       <span
-                        v-for="(m, mIdx) in (item.adv?.tradeMethods || [])"
+                        v-for="(m, mIdx) in (item.paymentMethods || [])"
                         :key="mIdx"
                         class="badge-tag"
-                      >{{ m.tradeMethodName || m.identifier }}</span>
+                      >{{ m.name }}</span>
                     </div>
                   </td>
                   <td style="white-space: nowrap;">
-                    <div style="font-size: 12px;">{{ item.advertiser?.monthOrderCount || 0 }} órd.</div>
+                    <div style="font-size: 12px;">{{ item.advertiser?.totalOrders || 0 }} órd.</div>
                     <div style="font-size: 11px; color: var(--color-green);">
-                      {{ ((item.advertiser?.monthFinishRate || 0) * 100).toFixed(1) }}%
+                      {{ ((item.advertiser?.monthlyCompletionRate || 0) * 100).toFixed(1) }}%
                     </div>
                   </td>
                 </tr>
@@ -249,8 +249,8 @@ const filteredRecords = computed(() => {
   if (!q) return records.value;
   return records.value.filter((item: any) => {
     const nick = (item.advertiser?.nickName || '').toLowerCase();
-    const methods = (item.adv?.tradeMethods || [])
-      .map((m: any) => (m.tradeMethodName || m.identifier || '').toLowerCase())
+    const methods = (item.paymentMethods || [])
+      .map((m: any) => (m.name || '').toLowerCase())
       .join(' ');
     return nick.includes(q) || methods.includes(q);
   });
@@ -290,10 +290,10 @@ const renderModalChart = () => {
   if (modalChartInstance) modalChartInstance = null;
 
   const allRecords = records.value;
-  const regularRecords = allRecords.filter((r: any) => !(typeof r.privilegeType === 'number' && r.privilegeType > 0));
+  const regularRecords = allRecords.filter((r: any) => !r.isPromoted);
   
   const prices = regularRecords
-    .map((r: any) => parseFloat(r.adv?.price))
+    .map((r: any) => typeof r.price === 'number' ? r.price : parseFloat(r.price))
     .filter((p: number) => !isNaN(p) && p > 0)
     .sort((a: number, b: number) => a - b);
 

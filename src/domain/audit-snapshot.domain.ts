@@ -1,4 +1,4 @@
-import { Advertising } from './advertising.js';
+import { P2POffer } from './offer.domain.js';
 import { MonitorQueryFilter } from './monitor-cron.domain.js';
 
 export interface AuditTrail {
@@ -17,5 +17,5 @@ export interface AuditSnapshot {
   status: 'SUCCESS' | 'FAILURE';
   errorMessage?: string;
   auditTrail: AuditTrail;
-  records: Advertising[];
+  records: P2POffer[];
 }
